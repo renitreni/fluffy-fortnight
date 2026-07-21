@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('avatar')->nullable()->comment('Profile picture URL or path');
+            $table->string('timezone', 50)->default('UTC')->comment('User preferred timezone (IANA)');
+            $table->string('locale', 10)->default('en')->comment('UI language locale code');
+            $table->boolean('is_active')->default(true)->comment('Soft-disable accounts without deleting');
             $table->rememberToken();
             $table->timestamps();
         });

@@ -6,6 +6,13 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * The master database seeder.
+ *
+ * Runs all application seeders in dependency order:
+ *   1. SubscriptionPlanSeeder — must run first so the free plan FK is available
+ *   2. User — test user (local dev only)
+ */
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -13,10 +20,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // 1. Subscription plans must exist before users reference them
+        $this->call(SubscriptionPlanSeeder::class);
 
+        // 2. Seed a default test user for local development
         User::factory()->create([
-            'name' => 'Test User',
+            'name'  => 'Test User',
             'email' => 'test@example.com',
         ]);
     }

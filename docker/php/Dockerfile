@@ -1,7 +1,7 @@
 # ──────────────────────────────────────────────────────────────
-# Stage 1: Base PHP-FPM 8.3 image with required extensions
+# Stage 1: Base PHP-FPM 8.4 image with required extensions
 # ──────────────────────────────────────────────────────────────
-FROM php:8.3-fpm AS base
+FROM php:8.4-fpm AS base
 
 # System dependencies
 RUN apt-get update && apt-get install -y \
