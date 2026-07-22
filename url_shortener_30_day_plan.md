@@ -17,54 +17,79 @@ This document outlines a rapid 30-day development schedule to build a full-featu
 ## Phase 1: Foundation & Infrastructure (Days 1 - 5)
 *Goal: Establish the development environment, database schema, and core framework scaffolding with observability and security in mind.*
 
-*   **Day 1: Project Scaffolding & Containerization**
-    *   Initialize the Laravel monolith with Inertia.js and Vue 3 scaffolding (`laravel new` + `php artisan breeze:install inertia` or manual Inertia setup).
-    *   Set up Docker orchestration (`docker-compose`) with containers for:
-        *   Laravel application (PHP-FPM)
-        *   Nginx reverse proxy
-        *   MySQL database
-        *   Redis (caching, sessions, rate limiting, queues)
-        *   Laravel Queue worker container
-        *   Node/Vite build service for compiling Vue assets
-        *   (Optional) MinIO for object storage (QR codes, exports)
-    *   Document the setup instructions in the repository README.
+*   ✅ **Day 1: Project Scaffolding & Containerization** *(Completed 2026-07-21)*
+    *   ✅ Initialize the Laravel monolith with Inertia.js and Vue 3 scaffolding (`laravel new` + `php artisan breeze:install inertia` or manual Inertia setup).
+    *   ✅ Set up Docker orchestration (`docker-compose`) with containers for:
+        *   ✅ Laravel application (PHP-FPM)
+        *   ✅ Nginx reverse proxy
+        *   ✅ MySQL database
+        *   ✅ Redis (caching, sessions, rate limiting, queues)
+        *   ✅ Laravel Queue worker container
+        *   ✅ Node/Vite build service for compiling Vue assets
+        *   ⏭️ (Optional) MinIO for object storage (QR codes, exports) — *deferred to Day 12*
+    *   ✅ Document the setup instructions in the repository README.
     *   **Acceptance Criteria:** `docker compose up` boots all services; health checks pass; Vite HMR works for Vue files.
 
-*   **Day 2: Database Design, Migrations & Indexing Strategy**
-    *   Design the MySQL schema: `users`, `links`, `clicks`, `workspaces`, `workspace_user`, `custom_domains`, `api_keys`, `webhooks`, `subscription_plans`.
-    *   Write and execute database migrations.
-    *   Define indexes upfront: `links.short_code` (unique), `links.user_id`, `links.workspace_id`, `links.custom_domain_id`, `clicks.link_id` + `created_at`, `clicks.country`.
+*   ✅ **Day 2: Database Design, Migrations & Indexing Strategy** *(Completed 2026-07-22)*
+    *   ✅ Design the MySQL schema: `users`, `links`, `clicks`, `workspaces`, `workspace_user`, `custom_domains`, `api_keys`, `webhooks`, `subscription_plans`.
+    *   ✅ Write and execute database migrations (13 migrations including all core tables).
+    *   ✅ Define indexes upfront: `links.short_code` (unique), `links.user_id`, `links.workspace_id`, `links.custom_domain_id`, `clicks.link_id` + `created_at`, `clicks.country`.
+    *   ✅ 9 Eloquent models with docblocks, `$fillable`, casts, and relationships.
+    *   ✅ 8 model factories with named states for testing.
+    *   ✅ ERD diagram committed to `/docs/erd.md`.
     *   **Acceptance Criteria:** Migrations run cleanly; ERD diagram committed to `/docs`.
 
-*   **Day 3: User Authentication & Security Setup**
-    *   Implement user registration, login, email verification, password reset, and Laravel Sanctum-based authentication.
-    *   Set up secure password hashing (bcrypt), HTTPS-only cookies, CSRF protection, CORS, and auth middleware.
-    *   Add initial rate limiting on auth endpoints.
+*   ✅ **Day 3: User Authentication & Security Setup** *(Completed 2026-07-22)*
+    *   ✅ Implement user registration, login, email verification, password reset via Laravel Breeze.
+    *   ✅ Set up secure password hashing (bcrypt), HTTPS-only cookies (`SESSION_SECURE_COOKIE=true`), CSRF protection, auth middleware.
+    *   ✅ Add initial rate limiting (`throttle:6,1`) on auth endpoints (register, forgot-password).
+    *   ✅ `MustVerifyEmail` interface added to `User` model.
     *   **Acceptance Criteria:** Users can register, verify email, log in, and access protected Inertia routes.
 
-*   **Day 4: Core Frontend Architecture with Vue 3 + Inertia**
-    *   Set up Inertia.js with Vue 3, Pinia for global state, and a shared layout system (`Layouts/App.vue`).
-    *   Build out standard Vue components (buttons, modals, form inputs, layout wrapper, toast notifications).
-    *   Configure Vite, Tailwind CSS, and global Inertia progress indicator.
-    *   **Acceptance Criteria:** Base Vue components render; Inertia page navigation works without full reloads.
+*   ✅ **Day 4: Core Frontend Architecture with Vue 3 + Inertia** *(Completed 2026-07-22)*
+    *   ✅ Set up Inertia.js with Vue 3, Pinia for global state (`useToastStore`), and shared layout (`AppLayout.vue`).
+    *   ✅ `ToastNotification.vue` — global toast with success/error/info/warning types and transition animations.
+    *   ✅ `AppLayout.vue` — glassmorphism nav, dark mode, responsive hamburger, decorative blob animations.
+    *   ✅ Configure Vite, Tailwind CSS with brand color palette, Inter font, custom animations.
+    *   ✅ Global Inertia progress indicator configured in `app.js` (color updated to brand-500 `#6366f1`).
+    *   ✅ Enhanced `PrimaryButton.vue` with gradient, shadow, hover animations.
+    *   ✅ Enhanced `TextInput.vue` with brand focus rings, dark mode support.
+    *   ✅ Upgraded `SecondaryButton.vue` — lift/shadow hover, dark mode, brand focus ring.
+    *   ✅ Upgraded `DangerButton.vue` — `red→rose` gradient, lift animation, dark mode.
+    *   ✅ Upgraded `Modal.vue` — blurred backdrop, dark-mode panel, rounded-2xl, built-in close button.
+    *   ✅ `Badge.vue` — 6 variants, 3 sizes, optional pulsing dot, dark mode.
+    *   ✅ `LoadingSpinner.vue` — 5 sizes, 3 variants, accessible `role="status"`.
+    *   ✅ `IconButton.vue` — ghost/solid/outline, 4 sizes, required `aria-label`.
+    *   ✅ `Dashboard.vue` — upgraded with welcome header, stats cards, UI component showcase, modal demo.
+    *   **Acceptance Criteria:** Base Vue components render; Inertia page navigation works without full reloads. ✅
 
-*   **Day 5: CI/CD, Baseline Documentation & Observability**
-    *   Establish GitHub Actions for linting (ESLint, Prettier, PHP CS Fixer/Pint), PHPUnit tests, and security scanning (Dependabot).
-    *   Finalize OpenAPI skeleton for the public API (internal pages use Inertia, not REST).
-    *   Add health check endpoints and structured JSON logging.
-    *   **Acceptance Criteria:** CI pipeline passes on `main`; `/health` endpoint returns 200.
+*   ✅ **Day 5: CI/CD, Baseline Documentation & Observability** *(Completed 2026-07-22)*
+    *   ✅ GitHub Actions CI pipeline (`.github/workflows/ci.yml`) — PHP Pint lint, PHPUnit tests, ESLint + Prettier checks.
+    *   ✅ Dependabot (`.github/dependabot.yml`) — weekly automated updates for Composer, npm, and GitHub Actions.
+    *   ✅ ESLint + Prettier configured (`.eslintrc.cjs`, `.prettierrc`); `lint`, `lint:fix`, `format`, `format:check` npm scripts added.
+    *   ✅ `GET /health` endpoint (`HealthController`) — checks MySQL + Redis; returns `200`/`503` structured JSON with timestamp, version, and per-dependency statuses.
+    *   ✅ Structured JSON logging channel (`json_stderr`) added to `config/logging.php` for Docker/production log aggregation.
+    *   ✅ OpenAPI 3.1 skeleton (`docs/openapi.yaml`) — BearerToken auth, Link CRUD + analytics paths, reusable schemas and responses.
+    *   ✅ `tests/Feature/HealthCheckTest.php` — 3 assertions; all 28 project tests pass.
+    *   **Acceptance Criteria:** CI pipeline passes on `main`; `/health` endpoint returns 200. ✅
 
 ---
 
 ## Phase 2: The Core Engine (Days 6 - 11)
 *Goal: Build the fundamental URL shortening and redirection logic with scalability and safety guardrails.*
 
-*   **Day 6: URL Normalization & The Shortening Algorithm**
-    *   Implement URL validation and normalization (strip tracking params, enforce HTTPS where appropriate, lowercase domain).
-    *   Implement Base62 encoding for generating unique, short hash strings (e.g., `domain.com/aB3x9`).
-    *   Consider a distributed ID strategy (database auto-increment + Base62) to avoid collisions at scale.
-    *   Create the Inertia-backed form and backend endpoint to accept long URLs and return shortened versions.
-    *   **Acceptance Criteria:** Valid URLs shorten; invalid URLs rejected; duplicate long URLs can optionally reuse existing short codes.
+*   ✅ **Day 6: URL Normalization & The Shortening Algorithm** *(Completed 2026-07-22)*
+    *   ✅ URL validation and normalization (strip 19 tracking params, enforce HTTPS, lowercase domain, sort query params, remove trailing slashes).
+    *   ✅ SSRF prevention: blocks loopback hostnames, private/reserved IP ranges, and the app's own domain.
+    *   ✅ Base62 encoding (`UrlNormalizerService` + `ShortCodeGeneratorService`) using DB auto-increment id — collision-free by design.
+    *   ✅ `StoreLinkRequest` form request with server-side URL validation.
+    *   ✅ `LinkController` with `index()` (shorten page) and `store()` (atomic create via `DB::transaction()` + UUID placeholder + Base62 update).
+    *   ✅ Per-user deduplication: same normalized URL → reuse existing short code with info flash.
+    *   ✅ `CopyButton.vue` — 3 variants, 3 sizes, Clipboard API + fallback, animated "Copied!" feedback.
+    *   ✅ `Pages/Links/Shorten.vue` — premium shorten form with paste button, collapsible title, loading state, result card, recent links list, empty state.
+    *   ✅ "Shorten" nav link added to `AppLayout.vue` (desktop + mobile).
+    *   ✅ 43 new tests (13 feature + 20 unit normalizer + 10 unit encoder); all 71 project tests pass.
+    *   **Acceptance Criteria:** Valid URLs shorten ✅; invalid URLs rejected ✅; duplicate long URLs reuse existing short codes ✅.
 
 *   **Day 7: Redirection, Caching & 301/302 Strategy**
     *   Build the redirect controller. Look up the short hash in Redis (fallback to MySQL) and perform an HTTP redirect.

@@ -1,0 +1,67 @@
+version: 2
+
+updates:
+  # ── PHP / Composer ─────────────────────────────────────────────────────────
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "php"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      laravel-framework:
+        patterns:
+          - "laravel/*"
+      dev-tools:
+        patterns:
+          - "phpunit/*"
+          - "mockery/*"
+          - "nunomaduro/*"
+          - "fakerphp/*"
+
+  # ── JavaScript / npm ───────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      vite-and-plugins:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "laravel-vite-plugin"
+      vue-ecosystem:
+        patterns:
+          - "vue"
+          - "@inertiajs/*"
+          - "pinia"
+
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Manila"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(deps)"

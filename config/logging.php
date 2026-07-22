@@ -127,6 +127,27 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        /*
+         * Structured JSON channel — writes newline-delimited JSON to stderr.
+         *
+         * Ideal for containerised deployments where log aggregators (Datadog,
+         * Loki, AWS CloudWatch, Google Cloud Logging) consume structured JSON
+         * from process stdout/stderr rather than log files.
+         *
+         * Enable by setting LOG_CHANNEL=json_stderr (or adding it to
+         * LOG_STACK=single,json_stderr) in your production .env.
+         */
+        'json_stderr' => [
+            'driver'    => 'monolog',
+            'level'     => env('LOG_LEVEL', 'debug'),
+            'handler'   => StreamHandler::class,
+            'formatter' => Monolog\Formatter\JsonFormatter::class,
+            'with'      => [
+                'stream' => 'php://stderr',
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
+        ],
+
     ],
 
 ];

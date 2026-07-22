@@ -1,0 +1,704 @@
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue';
+import { useForm, usePage } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import InputError from '@/Components/InputError.vue';
+import CopyButton from '@/Components/CopyButton.vue';
+import LoadingSpinner from '@/Components/LoadingSpinner.vue';
+import { useToastStore } from '@/Stores/useToastStore';
+
+/**
+ * Shorten.vue — The primary URL shortening interface.
+ *
+ * Receives from LinkController::index():
+ *   - recentLinks: The authenticated user's 5 most recently created links.
+ *   - appUrl:      The application base URL for constructing short link previews.
+ *
+ * On successful submission, the controller redirects back to this page with a
+ * `flash` object containing the new short URL and metadata.
+ */
+
+const props = defineProps({
+    recentLinks: {
+        type: Array,
+        default: () => [],
+    },
+    appUrl: {
+        type: String,
+        required: true,
+    },
+});
+
+const toast = useToastStore();
+const page = usePage();
+
+// ── Form State ──────────────────────────────────────────────────────────────
+
+const form = useForm({
+    original_url: '',
+    title: '',
+});
+
+const showTitleField = ref(false);
+
+// ── Flash / Result State ─────────────────────────────────────────────────────
+
+const result = ref(null);
+
+// Watch for flash data from the controller redirect
+watch(
+    () => page.props.flash,
+    (flash) => {
+        if (!flash) return;
+        result.value = flash;
+        if (flash.type === 'success') {
+            toast.success(flash.message);
+        } else if (flash.type === 'info') {
+            toast.info(flash.message);
+        }
+    },
+    { immediate: true },
+);
+
+// ── Recent Links ─────────────────────────────────────────────────────────────
+
+const recentLinks = ref([...props.recentLinks]);
+
+// After a successful creation, the page re-renders with updated props
+watch(
+    () => props.recentLinks,
+    (val) => {
+        recentLinks.value = [...val];
+    },
+);
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function shortUrl(code) {
+    return `${props.appUrl}/${code}`;
+}
+
+function relativeTime(dateStr) {
+    const date = new Date(dateStr);
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+function truncate(str, max = 50) {
+    if (!str) return '';
+    return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+// ── Submission ───────────────────────────────────────────────────────────────
+
+function submit() {
+    result.value = null;
+    form.post(route('links.store'), {
+        preserveScroll: true,
+        onError: () => {
+            toast.error('Please fix the errors below.');
+        },
+    });
+}
+
+// ── Animation trigger ────────────────────────────────────────────────────────
+
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
+</script>
+
+<template>
+    <AppLayout>
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 shadow-lg shadow-brand-500/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Shorten a URL</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Create a short, shareable link in seconds</p>
+                </div>
+            </div>
+        </template>
+
+        <div class="space-y-8" :class="{ 'opacity-0 translate-y-4': !mounted, 'opacity-100 translate-y-0 transition-all duration-500': mounted }">
+
+            <!-- ── Main Shorten Card ───────────────────────────────────────── -->
+            <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none ring-1 ring-gray-200/60 dark:ring-gray-700/60">
+
+                <!-- Gradient accent bar -->
+                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-purple-500 to-pink-500"></div>
+
+                <div class="p-6 sm:p-8">
+                    <form id="shorten-form" @submit.prevent="submit" novalidate>
+
+                        <!-- URL Input -->
+                        <div class="space-y-2">
+                            <label for="original_url" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Long URL
+                            </label>
+
+                            <div class="url-input-wrapper" :class="{ 'url-input-wrapper--error': form.errors.original_url }">
+                                <!-- Link icon -->
+                                <div class="url-input-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                    </svg>
+                                </div>
+
+                                <input
+                                    id="original_url"
+                                    v-model="form.original_url"
+                                    type="url"
+                                    name="original_url"
+                                    placeholder="https://example.com/very/long/url?with=params"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    class="url-input"
+                                    :disabled="form.processing"
+                                    @keydown.enter.prevent="submit"
+                                />
+
+                                <!-- Paste button -->
+                                <button
+                                    id="paste-btn"
+                                    type="button"
+                                    class="paste-btn"
+                                    title="Paste from clipboard"
+                                    :disabled="form.processing"
+                                    @click="async () => { try { form.original_url = await navigator.clipboard.readText(); } catch {} }"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                    <span>Paste</span>
+                                </button>
+                            </div>
+
+                            <InputError :message="form.errors.original_url" />
+                        </div>
+
+                        <!-- Optional title toggle -->
+                        <div class="mt-3">
+                            <button
+                                id="toggle-title-btn"
+                                type="button"
+                                class="inline-flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium transition-colors"
+                                @click="showTitleField = !showTitleField"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform duration-200" :class="{ 'rotate-45': showTitleField }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="16" />
+                                    <line x1="8" y1="12" x2="16" y2="12" />
+                                </svg>
+                                {{ showTitleField ? 'Hide title' : 'Add a title (optional)' }}
+                            </button>
+                        </div>
+
+                        <!-- Title field (collapsible) -->
+                        <Transition name="slide-down">
+                            <div v-if="showTitleField" class="mt-4 space-y-2">
+                                <label for="link_title" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                    Title
+                                </label>
+                                <input
+                                    id="link_title"
+                                    v-model="form.title"
+                                    type="text"
+                                    name="title"
+                                    placeholder="e.g. My Product Launch"
+                                    maxlength="255"
+                                    class="title-input"
+                                    :disabled="form.processing"
+                                />
+                                <InputError :message="form.errors.title" />
+                            </div>
+                        </Transition>
+
+                        <!-- Submit button -->
+                        <div class="mt-6">
+                            <button
+                                id="shorten-submit-btn"
+                                type="submit"
+                                class="shorten-btn"
+                                :disabled="form.processing || !form.original_url.trim()"
+                            >
+                                <LoadingSpinner v-if="form.processing" size="sm" variant="white" />
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                {{ form.processing ? 'Shortening…' : 'Shorten URL' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ── Result Card ─────────────────────────────────────────────── -->
+            <Transition name="result-pop">
+                <div
+                    v-if="result"
+                    id="shorten-result-card"
+                    class="result-card"
+                    :class="result.reused ? 'result-card--info' : 'result-card--success'"
+                >
+                    <!-- Icon -->
+                    <div class="result-card__icon">
+                        <svg v-if="result.reused" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </div>
+
+                    <div class="result-card__content">
+                        <p class="result-card__label">
+                            {{ result.reused ? 'Existing link reused' : 'Short link created!' }}
+                        </p>
+
+                        <!-- Short URL display + copy -->
+                        <div class="result-card__url-row">
+                            <a
+                                :href="result.link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="result-card__short-url"
+                                :id="`short-url-${result.shortCode}`"
+                            >
+                                {{ result.link }}
+                            </a>
+                            <CopyButton
+                                :value="result.link"
+                                variant="solid"
+                                size="md"
+                                show-label
+                                label="Copy"
+                                :id="`copy-btn-${result.shortCode}`"
+                                @copied="toast.success('Short URL copied to clipboard!')"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+
+            <!-- ── Recent Links ───────────────────────────────────────────── -->
+            <div v-if="recentLinks.length > 0" class="recent-links">
+                <h2 class="recent-links__heading">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    Recent links
+                </h2>
+
+                <div class="recent-links__list">
+                    <div
+                        v-for="link in recentLinks"
+                        :key="link.id"
+                        class="recent-link-item"
+                    >
+                        <div class="recent-link-item__info">
+                            <a
+                                :href="shortUrl(link.short_code)"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="recent-link-item__short"
+                                :id="`recent-link-${link.short_code}`"
+                            >
+                                /{{ link.short_code }}
+                            </a>
+                            <span class="recent-link-item__original" :title="link.original_url">
+                                {{ truncate(link.original_url, 60) }}
+                            </span>
+                        </div>
+
+                        <div class="recent-link-item__meta">
+                            <span class="recent-link-item__clicks">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                                </svg>
+                                {{ link.click_count ?? 0 }}
+                            </span>
+                            <span class="recent-link-item__time">{{ relativeTime(link.created_at) }}</span>
+                            <CopyButton
+                                :value="shortUrl(link.short_code)"
+                                variant="ghost"
+                                size="sm"
+                                :id="`copy-recent-${link.short_code}`"
+                                @copied="toast.success('Copied!')"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Empty state ───────────────────────────────────────────── -->
+            <div v-else class="empty-state">
+                <div class="empty-state__icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                </div>
+                <p class="empty-state__text">Your shortened links will appear here</p>
+                <p class="empty-state__sub">Paste any long URL above and hit Shorten URL</p>
+            </div>
+
+        </div>
+    </AppLayout>
+</template>
+
+<style scoped>
+/* ── URL Input ──────────────────────────────────────────────────────────── */
+.url-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    background: #f9fafb;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+:global(.dark) .url-input-wrapper {
+    background: #111827;
+    border-color: #374151;
+}
+
+.url-input-wrapper:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.url-input-wrapper--error {
+    border-color: #f87171;
+}
+
+.url-input-icon {
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.url-input {
+    flex: 1;
+    padding: 0.875rem 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.9375rem;
+    color: #111827;
+    min-width: 0;
+}
+
+:global(.dark) .url-input { color: #f9fafb; }
+.url-input::placeholder { color: #9ca3af; }
+.url-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.paste-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background: #ede9fe;
+    color: #6366f1;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.paste-btn:hover { background: #ddd6fe; }
+:global(.dark) .paste-btn { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+:global(.dark) .paste-btn:hover { background: rgba(99,102,241,0.25); }
+
+/* ── Title Input ────────────────────────────────────────────────────────── */
+.title-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    color: #111827;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+:global(.dark) .title-input { background: #111827; border-color: #374151; color: #f9fafb; }
+.title-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+.title-input::placeholder { color: #9ca3af; }
+
+/* ── Shorten Button ─────────────────────────────────────────────────────── */
+.shorten-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 0.875rem;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    transition: all 0.2s ease;
+}
+
+.shorten-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+}
+
+.shorten-btn:active:not(:disabled) { transform: translateY(0); }
+
+.shorten-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ── Result Card ────────────────────────────────────────────────────────── */
+.result-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem;
+    border: 1.5px solid;
+}
+
+.result-card--success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #065f46;
+}
+
+:global(.dark) .result-card--success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+
+.result-card--info {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #3730a3;
+}
+
+:global(.dark) .result-card--info {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.25);
+    color: #a5b4fc;
+}
+
+.result-card__icon {
+    margin-top: 0.125rem;
+    flex-shrink: 0;
+}
+
+.result-card__content { flex: 1; min-width: 0; }
+
+.result-card__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+}
+
+.result-card__url-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.result-card__short-url {
+    font-size: 1.125rem;
+    font-weight: 700;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.result-card--success .result-card__short-url { color: #059669; }
+.result-card--info    .result-card__short-url { color: #6366f1; }
+:global(.dark) .result-card--success .result-card__short-url { color: #34d399; }
+:global(.dark) .result-card--info    .result-card__short-url { color: #818cf8; }
+
+.result-card__short-url:hover { text-decoration: underline; }
+
+/* ── Recent Links ────────────────────────────────────────────────────────── */
+.recent-links {}
+
+.recent-links__heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
+}
+
+.recent-links__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.recent-link-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1.25rem;
+    background: white;
+    border: 1px solid #f3f4f6;
+    border-radius: 0.875rem;
+    transition: all 0.15s;
+}
+
+:global(.dark) .recent-link-item {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.recent-link-item:hover {
+    border-color: #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+:global(.dark) .recent-link-item:hover { border-color: #4b5563; }
+
+.recent-link-item__info { flex: 1; min-width: 0; }
+
+.recent-link-item__short {
+    display: block;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #6366f1;
+    text-decoration: none;
+    margin-bottom: 0.125rem;
+}
+
+.recent-link-item__short:hover { text-decoration: underline; }
+:global(.dark) .recent-link-item__short { color: #818cf8; }
+
+.recent-link-item__original {
+    display: block;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recent-link-item__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.recent-link-item__clicks {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+    color: #9ca3af;
+}
+
+.recent-link-item__time {
+    font-size: 0.8125rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.empty-state__icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+    margin-bottom: 1rem;
+}
+
+.empty-state__text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.375rem;
+}
+
+:global(.dark) .empty-state__text { color: #d1d5db; }
+
+.empty-state__sub {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+/* ── Transitions ─────────────────────────────────────────────────────────── */
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all 0.25s ease;
+    overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-4px);
+}
+
+.slide-down-enter-to,
+.slide-down-leave-from {
+    opacity: 1;
+    max-height: 200px;
+}
+
+.result-pop-enter-active { animation: result-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.result-pop-leave-active { transition: all 0.2s ease; }
+.result-pop-leave-to     { opacity: 0; transform: translateY(-8px); }
+
+@keyframes result-pop-in {
+    from { opacity: 0; transform: scale(0.95) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+</style>

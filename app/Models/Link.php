@@ -161,4 +161,16 @@ class Link extends Model
                     ->orWhere('expires_at', '>', now());
             });
     }
+
+    /**
+     * Scope to only links owned by a specific user.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int $userId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
 }
