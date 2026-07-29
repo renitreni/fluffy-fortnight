@@ -15,16 +15,14 @@ class InvalidUrlException extends RuntimeException
 {
     /**
      * The recommended HTTP status code for this exception.
-     *
-     * @var int
      */
     public int $httpStatus = 422;
 
     /**
      * Create a new InvalidUrlException.
      *
-     * @param string $message  Human-readable description of the validation failure.
-     * @param int    $code     Optional PHP exception code (not the HTTP status).
+     * @param  string  $message  Human-readable description of the validation failure.
+     * @param  int  $code  Optional PHP exception code (not the HTTP status).
      */
     public function __construct(string $message = 'The provided URL is invalid.', int $code = 0)
     {

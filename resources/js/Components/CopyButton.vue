@@ -4,7 +4,7 @@
         type="button"
         :aria-label="copied ? 'Copied!' : 'Copy to clipboard'"
         class="copy-btn"
-        :class="[sizeClass, variantClass, { 'copied': copied }]"
+        :class="[sizeClass, variantClass, { copied: copied }]"
         @click="copy"
     >
         <span class="copy-btn__icon" aria-hidden="true">
@@ -101,8 +101,8 @@ const sizeClass = computed(() => ({
 }));
 
 const variantClass = computed(() => ({
-    'copy-btn--ghost':   props.variant === 'ghost',
-    'copy-btn--solid':   props.variant === 'solid',
+    'copy-btn--ghost': props.variant === 'ghost',
+    'copy-btn--solid': props.variant === 'solid',
     'copy-btn--outline': props.variant === 'outline',
 }));
 
@@ -155,30 +155,59 @@ async function copy() {
 }
 
 /* Sizes */
-.copy-btn--sm { padding: 0.25rem; font-size: 0.75rem; }
-.copy-btn--sm .copy-btn__icon svg { width: 14px; height: 14px; }
+.copy-btn--sm {
+    padding: 0.25rem;
+    font-size: 0.75rem;
+}
+.copy-btn--sm .copy-btn__icon svg {
+    width: 14px;
+    height: 14px;
+}
 
-.copy-btn--md { padding: 0.375rem; font-size: 0.875rem; }
-.copy-btn--md .copy-btn__icon svg { width: 16px; height: 16px; }
+.copy-btn--md {
+    padding: 0.375rem;
+    font-size: 0.875rem;
+}
+.copy-btn--md .copy-btn__icon svg {
+    width: 16px;
+    height: 16px;
+}
 
-.copy-btn--lg { padding: 0.5rem; font-size: 1rem; }
-.copy-btn--lg .copy-btn__icon svg { width: 18px; height: 18px; }
+.copy-btn--lg {
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+.copy-btn--lg .copy-btn__icon svg {
+    width: 18px;
+    height: 18px;
+}
 
 /* Ghost variant */
 .copy-btn--ghost {
     background: transparent;
     color: #6b7280;
 }
-.copy-btn--ghost:hover { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
-.copy-btn--ghost.copied { color: #10b981; }
+.copy-btn--ghost:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+.copy-btn--ghost.copied {
+    color: #10b981;
+}
 
 /* Solid variant */
 .copy-btn--solid {
     background: #6366f1;
     color: white;
 }
-.copy-btn--solid:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35); }
-.copy-btn--solid.copied { background: #10b981; }
+.copy-btn--solid:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+.copy-btn--solid.copied {
+    background: #10b981;
+}
 
 /* Outline variant */
 .copy-btn--outline {
@@ -186,9 +215,18 @@ async function copy() {
     color: #6366f1;
     border: 1.5px solid #6366f1;
 }
-.copy-btn--outline:hover { background: rgba(99, 102, 241, 0.08); }
-.copy-btn--outline.copied { color: #10b981; border-color: #10b981; }
+.copy-btn--outline:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+.copy-btn--outline.copied {
+    color: #10b981;
+    border-color: #10b981;
+}
 
 /* Copied state transitions */
-.copy-btn__icon { display: flex; align-items: center; justify-content: center; }
+.copy-btn__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 </style>

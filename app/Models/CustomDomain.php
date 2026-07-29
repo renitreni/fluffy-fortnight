@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\CustomDomainFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * CustomDomain represents a user-owned branded domain for short links.
@@ -20,19 +23,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $user_id
  * @property string $domain
  * @property bool $is_verified
- * @property \Illuminate\Support\Carbon|null $verified_at
+ * @property Carbon|null $verified_at
  * @property string|null $verification_token
- * @property string $ssl_status  One of: pending, active, failed
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\Workspace|null $workspace
- * @property-read \App\Models\User $user
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Link> $links
+ * @property string $ssl_status One of: pending, active, failed
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Workspace|null $workspace
+ * @property-read User $user
+ * @property-read Collection<int, Link> $links
  */
 class CustomDomain extends Model
 {
-    /** @use HasFactory<\Database\Factories\CustomDomainFactory> */
+    /** @use HasFactory<CustomDomainFactory> */
     use HasFactory, SoftDeletes;
 
     /**

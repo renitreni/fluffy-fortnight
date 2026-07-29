@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Database\Factories\ApiKeyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * ApiKey stores a hashed programmatic access credential for the public API.
@@ -21,17 +23,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $key_hash
  * @property string $key_prefix
  * @property array|null $abilities
- * @property \Illuminate\Support\Carbon|null $last_used_at
- * @property \Illuminate\Support\Carbon|null $expires_at
+ * @property Carbon|null $last_used_at
+ * @property Carbon|null $expires_at
  * @property bool $is_active
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\User $user
- * @property-read \App\Models\Workspace|null $workspace
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
+ * @property-read Workspace|null $workspace
  */
 class ApiKey extends Model
 {
-    /** @use HasFactory<\Database\Factories\ApiKeyFactory> */
+    /** @use HasFactory<ApiKeyFactory> */
     use HasFactory;
 
     /**
@@ -68,10 +70,10 @@ class ApiKey extends Model
     protected function casts(): array
     {
         return [
-            'abilities'    => 'array',
+            'abilities' => 'array',
             'last_used_at' => 'datetime',
-            'expires_at'   => 'datetime',
-            'is_active'    => 'boolean',
+            'expires_at' => 'datetime',
+            'is_active' => 'boolean',
         ];
     }
 

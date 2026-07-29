@@ -2,13 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessClickTracking;
 use App\Models\Link;
 use App\Models\User;
 use App\Services\RedirectCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -38,17 +39,23 @@ class RedirectControllerTest extends TestCase
 
         $user = User::factory()->create();
         $link = Link::factory()->create([
-            'user_id'      => $user->id,
-            'short_code'   => 'abc1',
+            'user_id' => $user->id,
+            'short_code' => 'abc1',
             'original_url' => 'https://www.example.com/target-page',
-            'is_active'    => true,
-            'expires_at'   => null,
+            'is_active' => true,
+            'expires_at' => null,
         ]);
 
-        $response = $this->get('/' . $link->short_code);
+        Queue::fake();
+
+        $response = $this->get('/'.$link->short_code);
 
         $response->assertStatus(302);
         $response->assertRedirect('https://www.example.com/target-page');
+
+        Queue::assertPushed(ProcessClickTracking::class, function ($job) use ($link) {
+            return $job->linkId === $link->id;
+        });
     }
 
     // ── Cache Warming ──────────────────────────────────────────────────────────
@@ -62,15 +69,15 @@ class RedirectControllerTest extends TestCase
 
         $user = User::factory()->create();
         $link = Link::factory()->create([
-            'user_id'      => $user->id,
-            'short_code'   => 'warm1',
+            'user_id' => $user->id,
+            'short_code' => 'warm1',
             'original_url' => 'https://www.cacheme.com/',
-            'is_active'    => true,
-            'expires_at'   => null,
+            'is_active' => true,
+            'expires_at' => null,
         ]);
 
         // First hit — cache is empty
-        $this->get('/' . $link->short_code)->assertStatus(302);
+        $this->get('/'.$link->short_code)->assertStatus(302);
 
         // The cache service should now have the entry
         $cacheService = app(RedirectCacheService::class);
@@ -91,15 +98,17 @@ class RedirectControllerTest extends TestCase
 
         $user = User::factory()->create();
         $link = Link::factory()->create([
-            'user_id'      => $user->id,
-            'short_code'   => 'nodb1',
+            'user_id' => $user->id,
+            'short_code' => 'nodb1',
             'original_url' => 'https://www.nodedb.com/',
-            'is_active'    => true,
-            'expires_at'   => null,
+            'is_active' => true,
+            'expires_at' => null,
         ]);
 
         // Warm the cache via the first request
-        $this->get('/' . $link->short_code)->assertStatus(302);
+        $this->get('/'.$link->short_code)->assertStatus(302);
+
+        Queue::fake();
 
         // Count DB queries on the second request
         $queryCount = 0;
@@ -107,7 +116,7 @@ class RedirectControllerTest extends TestCase
             $queryCount++;
         });
 
-        $response = $this->get('/' . $link->short_code);
+        $response = $this->get('/'.$link->short_code);
         $response->assertStatus(302);
 
         $this->assertEquals(0, $queryCount, 'No DB queries should be made when cache is warm');
@@ -122,9 +131,13 @@ class RedirectControllerTest extends TestCase
     {
         Cache::flush();
 
+        Queue::fake();
+
         $response = $this->get('/NOTEXIST');
 
         $response->assertStatus(404);
+
+        Queue::assertNotPushed(ProcessClickTracking::class);
     }
 
     /**
@@ -165,13 +178,17 @@ class RedirectControllerTest extends TestCase
 
         $user = User::factory()->create();
         $link = Link::factory()->create([
-            'user_id'    => $user->id,
+            'user_id' => $user->id,
             'short_code' => 'inact1',
-            'is_active'  => false,
+            'is_active' => false,
             'expires_at' => null,
         ]);
 
-        $this->get('/' . $link->short_code)->assertStatus(404);
+        Queue::fake();
+
+        $this->get('/'.$link->short_code)->assertStatus(404);
+
+        Queue::assertNotPushed(ProcessClickTracking::class);
     }
 
     // ── Expired Links ──────────────────────────────────────────────────────────
@@ -185,13 +202,17 @@ class RedirectControllerTest extends TestCase
 
         $user = User::factory()->create();
         $link = Link::factory()->create([
-            'user_id'    => $user->id,
+            'user_id' => $user->id,
             'short_code' => 'exp1',
-            'is_active'  => true,
+            'is_active' => true,
             'expires_at' => now()->subDay(),
         ]);
 
-        $this->get('/' . $link->short_code)->assertStatus(410);
+        Queue::fake();
+
+        $this->get('/'.$link->short_code)->assertStatus(410);
+
+        Queue::assertNotPushed(ProcessClickTracking::class);
     }
 
     /**
@@ -208,10 +229,10 @@ class RedirectControllerTest extends TestCase
         // Manually warm the cache with an expired payload
         $cacheService->get('expCache1'); // ensure empty first
         Cache::put($cacheService->linkKey('expCache1'), [
-            'original_url'  => 'https://www.expired.com/',
+            'original_url' => 'https://www.expired.com/',
             'redirect_type' => 302,
-            'is_active'     => true,
-            'expires_at'    => now()->subHour()->toIso8601String(),
+            'is_active' => true,
+            'expires_at' => now()->subHour()->toIso8601String(),
         ], RedirectCacheService::LINK_TTL);
 
         $this->get('/expCache1')->assertStatus(410);
@@ -227,11 +248,11 @@ class RedirectControllerTest extends TestCase
     {
         Cache::flush();
 
-        $user  = User::factory()->create(['email_verified_at' => now()]);
-        $link  = Link::factory()->create([
-            'user_id'    => $user->id,
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $link = Link::factory()->create([
+            'user_id' => $user->id,
             'short_code' => 'del1',
-            'is_active'  => true,
+            'is_active' => true,
             'expires_at' => null,
         ]);
 
@@ -242,6 +263,7 @@ class RedirectControllerTest extends TestCase
 
         // Destroy via controller
         $this->actingAs($user)
+            ->from(route('links.index'))
             ->delete(route('links.destroy', $link))
             ->assertRedirect(route('links.index'));
 
@@ -250,5 +272,88 @@ class RedirectControllerTest extends TestCase
             $cacheService->get($link->short_code),
             'Cache entry must be evicted after link deletion'
         );
+    }
+
+    // ── Deep Links (Day 15) ───────────────────────────────────────────────────
+
+    public function test_ios_user_agent_redirects_to_ios_deep_link(): void
+    {
+        Cache::flush();
+        $link = Link::factory()->create([
+            'short_code' => 'ios1',
+            'original_url' => 'https://example.com/web',
+            'ios_deep_link' => 'myapp://ios',
+            'android_deep_link' => 'myapp://android',
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeader('User-Agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1')
+            ->get('/'.$link->short_code);
+
+        $response->assertStatus(302);
+        $response->assertRedirect('myapp://ios');
+    }
+
+    public function test_android_user_agent_redirects_to_android_deep_link(): void
+    {
+        Cache::flush();
+        $link = Link::factory()->create([
+            'short_code' => 'and1',
+            'original_url' => 'https://example.com/web',
+            'ios_deep_link' => 'myapp://ios',
+            'android_deep_link' => 'myapp://android',
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeader('User-Agent', 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36')
+            ->get('/'.$link->short_code);
+
+        $response->assertStatus(302);
+        $response->assertRedirect('myapp://android');
+    }
+
+    public function test_desktop_user_agent_redirects_to_original_url_despite_deep_links(): void
+    {
+        Cache::flush();
+        $link = Link::factory()->create([
+            'short_code' => 'desk1',
+            'original_url' => 'https://example.com/web',
+            'ios_deep_link' => 'myapp://ios',
+            'android_deep_link' => 'myapp://android',
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeader('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36')
+            ->get('/'.$link->short_code);
+
+        $response->assertStatus(302);
+        $response->assertRedirect('https://example.com/web');
+    }
+
+    public function test_cached_redirect_preserves_deep_link_resolution(): void
+    {
+        Cache::flush();
+        $link = Link::factory()->create([
+            'short_code' => 'cached1',
+            'original_url' => 'https://example.com/web',
+            'ios_deep_link' => 'myapp://ios',
+            'android_deep_link' => 'myapp://android',
+            'is_active' => true,
+        ]);
+
+        // First hit (DB) with Android
+        $this->withHeader('User-Agent', 'Mozilla/5.0 (Linux; Android 10) Chrome/80.0.3987.149 Mobile Safari/537.36')
+            ->get('/'.$link->short_code)
+            ->assertRedirect('myapp://android');
+
+        // Second hit (Cache) with iOS
+        $this->withHeader('User-Agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)')
+            ->get('/'.$link->short_code)
+            ->assertRedirect('myapp://ios');
+
+        // Third hit (Cache) with Desktop
+        $this->withHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+            ->get('/'.$link->short_code)
+            ->assertRedirect('https://example.com/web');
     }
 }

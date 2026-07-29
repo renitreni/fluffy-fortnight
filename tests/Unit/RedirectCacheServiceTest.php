@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Link;
 use App\Services\RedirectCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
@@ -45,15 +46,17 @@ class RedirectCacheServiceTest extends TestCase
     public function get_returns_array_payload_on_cache_hit(): void
     {
         Cache::put($this->service->linkKey('hit1'), [
-            'original_url'  => 'https://example.com',
+            'id' => 123,
+            'original_url' => 'https://example.com',
             'redirect_type' => 302,
-            'is_active'     => true,
-            'expires_at'    => null,
+            'is_active' => true,
+            'expires_at' => null,
         ], 60);
 
         $result = $this->service->get('hit1');
 
         $this->assertIsArray($result);
+        $this->assertEquals(123, $result['id']);
         $this->assertEquals('https://example.com', $result['original_url']);
         $this->assertEquals(302, $result['redirect_type']);
     }
@@ -64,10 +67,10 @@ class RedirectCacheServiceTest extends TestCase
     public function put_stores_expected_payload_for_active_link(): void
     {
         $link = Link::factory()->create([
-            'short_code'   => 'put1',
+            'short_code' => 'put1',
             'original_url' => 'https://put.example.com/path',
-            'is_active'    => true,
-            'expires_at'   => null,
+            'is_active' => true,
+            'expires_at' => null,
         ]);
 
         $this->service->put($link);
@@ -75,6 +78,7 @@ class RedirectCacheServiceTest extends TestCase
         $cached = $this->service->get('put1');
 
         $this->assertNotNull($cached);
+        $this->assertEquals($link->id, $cached['id']);
         $this->assertEquals('https://put.example.com/path', $cached['original_url']);
         $this->assertEquals(302, $cached['redirect_type']);
         $this->assertTrue($cached['is_active']);
@@ -87,10 +91,10 @@ class RedirectCacheServiceTest extends TestCase
         $expiresAt = now()->addDays(7);
 
         $link = Link::factory()->create([
-            'short_code'   => 'putexp1',
+            'short_code' => 'putexp1',
             'original_url' => 'https://expiry.example.com/',
-            'is_active'    => true,
-            'expires_at'   => $expiresAt,
+            'is_active' => true,
+            'expires_at' => $expiresAt,
         ]);
 
         $this->service->put($link);
@@ -99,7 +103,7 @@ class RedirectCacheServiceTest extends TestCase
 
         $this->assertNotNull($cached['expires_at']);
         // Verify it's a parseable ISO 8601 string
-        $parsed = \Illuminate\Support\Carbon::parse($cached['expires_at']);
+        $parsed = Carbon::parse($cached['expires_at']);
         $this->assertTrue($parsed->isSameDay($expiresAt));
     }
 
@@ -109,10 +113,10 @@ class RedirectCacheServiceTest extends TestCase
     public function forget_removes_link_cache_entry(): void
     {
         $link = Link::factory()->create([
-            'short_code'   => 'forget1',
+            'short_code' => 'forget1',
             'original_url' => 'https://forget.example.com/',
-            'is_active'    => true,
-            'expires_at'   => null,
+            'is_active' => true,
+            'expires_at' => null,
         ]);
 
         $this->service->put($link);

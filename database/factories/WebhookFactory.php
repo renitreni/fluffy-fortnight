@@ -10,14 +10,14 @@ use Illuminate\Support\Str;
 /**
  * Factory for generating Webhook test instances.
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Webhook>
+ * @extends Factory<Webhook>
  */
 class WebhookFactory extends Factory
 {
     /**
      * The name of the factory's corresponding model.
      *
-     * @var class-string<\App\Models\Webhook>
+     * @var class-string<Webhook>
      */
     protected $model = Webhook::class;
 
@@ -29,17 +29,17 @@ class WebhookFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id'           => User::factory(),
-            'workspace_id'      => null,
-            'url'               => 'https://' . $this->faker->domainName() . '/webhooks/receive',
-            'events'            => $this->faker->randomElements(
+            'user_id' => User::factory(),
+            'workspace_id' => null,
+            'url' => 'https://'.$this->faker->domainName().'/webhooks/receive',
+            'events' => $this->faker->randomElements(
                 ['link.created', 'link.clicked', 'link.deleted', 'link.updated'],
                 $this->faker->numberBetween(1, 3)
             ),
-            'secret'            => Str::random(32),
-            'is_active'         => true,
+            'secret' => Str::random(32),
+            'is_active' => true,
             'last_triggered_at' => null,
-            'failure_count'     => 0,
+            'failure_count' => 0,
         ];
     }
 }

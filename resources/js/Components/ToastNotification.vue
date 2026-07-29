@@ -68,11 +68,7 @@ const getIcon = (type) => {
                                     stroke="currentColor"
                                     aria-hidden="true"
                                 >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        :d="getIcon(toast.type)"
-                                    />
+                                    <path stroke-linecap="round" stroke-linejoin="round" :d="getIcon(toast.type)" />
                                 </svg>
                             </div>
                             <div class="ml-3 w-0 flex-1 pt-0.5">
@@ -87,12 +83,7 @@ const getIcon = (type) => {
                                     class="inline-flex rounded-md bg-transparent text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
                                 >
                                     <span class="sr-only">Close</span>
-                                    <svg
-                                        class="h-5 w-5"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                        aria-hidden="true"
-                                    >
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path
                                             d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
                                         />

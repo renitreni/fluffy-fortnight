@@ -23,10 +23,13 @@ class DatabaseSeeder extends Seeder
         // 1. Subscription plans must exist before users reference them
         $this->call(SubscriptionPlanSeeder::class);
 
+        $plan = \App\Models\SubscriptionPlan::where('name', 'enterprise')->first();
+
         // 2. Seed a default test user for local development
         User::factory()->create([
-            'name'  => 'Test User',
+            'name' => 'Test User',
             'email' => 'test@example.com',
+            'subscription_plan_id' => $plan?->id,
         ]);
     }
 }

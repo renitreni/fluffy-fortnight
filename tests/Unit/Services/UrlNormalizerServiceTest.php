@@ -23,7 +23,7 @@ class UrlNormalizerServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new UrlNormalizerService();
+        $this->service = new UrlNormalizerService;
     }
 
     // ── Scheme injection ──────────────────────────────────────────────────
@@ -90,16 +90,16 @@ class UrlNormalizerServiceTest extends TestCase
     // ── Tracking parameter stripping ──────────────────────────────────────
 
     /**
-     * utm_source, utm_medium, utm_campaign, utm_term, utm_content should be removed.
+     * utm_source, utm_medium, utm_campaign, utm_term, utm_content should be preserved.
      */
-    public function test_utm_params_are_stripped(): void
+    public function test_utm_params_are_preserved(): void
     {
-        $url = 'https://example.com/page?utm_source=google&utm_medium=cpc&utm_campaign=launch&keep=yes';
+        $url = 'https://example.com/page?utm_campaign=launch&utm_medium=cpc&utm_source=google&keep=yes';
         $result = $this->service->normalize($url);
 
-        $this->assertStringNotContainsString('utm_source', $result);
-        $this->assertStringNotContainsString('utm_medium', $result);
-        $this->assertStringNotContainsString('utm_campaign', $result);
+        $this->assertStringContainsString('utm_source=google', $result);
+        $this->assertStringContainsString('utm_medium=cpc', $result);
+        $this->assertStringContainsString('utm_campaign=launch', $result);
         $this->assertStringContainsString('keep=yes', $result);
     }
 
@@ -130,7 +130,7 @@ class UrlNormalizerServiceTest extends TestCase
      */
     public function test_all_tracking_params_stripped_leaves_no_query_string(): void
     {
-        $result = $this->service->normalize('https://example.com/page?fbclid=abc&utm_source=fb');
+        $result = $this->service->normalize('https://example.com/page?fbclid=abc&gclid=123');
         $this->assertStringNotContainsString('?', $result);
     }
 

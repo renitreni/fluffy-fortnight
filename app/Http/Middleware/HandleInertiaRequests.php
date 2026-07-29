@@ -33,7 +33,10 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'workspaces' => $request->user() ? $request->user()->workspaces()->get()->merge($request->user()->ownedWorkspaces) : [],
+                'currentWorkspace' => $request->user() ? $request->user()->currentWorkspace : null,
             ],
+            'flash' => fn () => $request->session()->get('flash'),
         ];
     }
 }

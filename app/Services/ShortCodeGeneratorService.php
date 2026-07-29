@@ -44,10 +44,10 @@ class ShortCodeGeneratorService
     /**
      * Encode a positive integer into a Base62 string.
      *
-     * @param  int    $id  The integer to encode. Must be ≥ 1.
-     * @return string      The Base62-encoded string (e.g. "aB3x").
+     * @param  int  $id  The integer to encode. Must be ≥ 1.
+     * @return string The Base62-encoded string (e.g. "aB3x").
      *
-     * @throws \InvalidArgumentException  If $id is less than 1.
+     * @throws \InvalidArgumentException If $id is less than 1.
      */
     public function encode(int $id): string
     {
@@ -59,7 +59,7 @@ class ShortCodeGeneratorService
         $n = $id;
 
         while ($n > 0) {
-            $result = self::ALPHABET[$n % self::BASE] . $result;
+            $result = self::ALPHABET[$n % self::BASE].$result;
             $n = intdiv($n, self::BASE);
         }
 
@@ -72,8 +72,8 @@ class ShortCodeGeneratorService
      * Useful for debugging and analytics lookups. Unknown characters are silently
      * ignored — callers should validate the code before relying on the result.
      *
-     * @param  string $code  The Base62-encoded short code to decode.
-     * @return int           The decoded integer ID.
+     * @param  string  $code  The Base62-encoded short code to decode.
+     * @return int The decoded integer ID.
      */
     public function decode(string $code): int
     {
@@ -98,14 +98,14 @@ class ShortCodeGeneratorService
      * database-assigned `id`. It encodes the id, updates the `short_code` column,
      * and returns the generated code.
      *
-     * @param  \App\Models\Link $link  A Link model with a valid `id`.
-     * @return string                  The generated and persisted short code.
+     * @param  Link  $link  A Link model with a valid `id`.
+     * @return string The generated and persisted short code.
      *
-     * @throws \InvalidArgumentException  If the link has no id (not yet saved).
+     * @throws \InvalidArgumentException If the link has no id (not yet saved).
      */
     public function generateForLink(Link $link): string
     {
-        if (!$link->id) {
+        if (! $link->id) {
             throw new \InvalidArgumentException('Link must be persisted (have an id) before a short code can be generated.');
         }
 
@@ -119,8 +119,6 @@ class ShortCodeGeneratorService
     /**
      * Return the Base62 alphabet used by this encoder.
      * Exposed for testing and external validation.
-     *
-     * @return string
      */
     public function getAlphabet(): string
     {

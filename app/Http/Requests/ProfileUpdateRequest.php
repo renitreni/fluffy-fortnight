@@ -26,6 +26,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'ip_anonymization' => ['nullable', 'boolean'],
+            'data_retention_days' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

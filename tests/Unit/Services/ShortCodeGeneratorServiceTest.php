@@ -22,7 +22,7 @@ class ShortCodeGeneratorServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ShortCodeGeneratorService();
+        $this->service = new ShortCodeGeneratorService;
     }
 
     // ── Encoding ──────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ class ShortCodeGeneratorServiceTest extends TestCase
             $this->assertLessThanOrEqual(
                 4,
                 strlen($code),
-                "Code for id={$id} has length " . strlen($code) . " (expected ≤4): {$code}"
+                "Code for id={$id} has length ".strlen($code)." (expected ≤4): {$code}"
             );
         }
     }

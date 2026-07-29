@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -24,11 +26,11 @@ return new class extends Migration
     {
         Schema::create('api_keys', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(\App\Models\User::class)
+            $table->foreignIdFor(User::class)
                 ->constrained()
                 ->cascadeOnDelete()
                 ->comment('The user who owns this API key');
-            $table->foreignIdFor(\App\Models\Workspace::class)
+            $table->foreignIdFor(Workspace::class)
                 ->nullable()
                 ->constrained()
                 ->nullOnDelete()

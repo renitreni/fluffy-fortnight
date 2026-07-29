@@ -10,6 +10,51 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 
 ---
 
+## [0.18.0] — 2026-07-24 · Day 18: Device & Location Parsing
+
+### Added
+
+- **`jenssegers/agent` and `stevebauman/location` dependencies:** Added for parsing User-Agent strings and GeoIP lookups.
+- **Device & Location Parsing in `ProcessClickTracking`:** Refactored the `ProcessClickTracking` job to accept raw IP addresses, parse the device type (desktop/mobile/tablet/bot), OS, browser using `Agent`, and location data (country, city, region, coordinates) using `Location` before hashing the IP address for privacy compliance.
+- **Tests:** Updated `ProcessClickTrackingTest` to mock the `Location` facade and assert correct extraction of location and device metrics.
+
+
+## [0.14.0] — 2026-07-23 · Day 14: Link Expiration & Password Protection
+
+### Added
+
+- **`app/Http/Controllers/PasswordGateController.php`:** New public controller handling `POST /{shortCode}/auth`. Verifies the submitted plain-text password against the bcrypt hash stored on the Link using `Hash::check()` on `getRawOriginal('password')` to avoid double-hashing. Returns validation errors on failure; 302 redirect to the original URL on success.
+- **`resources/js/Pages/Links/PasswordGate.vue`:** Premium Inertia password gate page. Features a full-screen glassmorphism dark UI, decorative blob animations, lock icon, short link badge, a password input with show/hide toggle, inline error display, animated "Unlock Link" submit button, and full ARIA accessibility attributes.
+- **`tests/Feature/LinkExpirationTest.php`:** 6 feature tests: future expiry stored correctly, null expiry default, past/invalid date validation rejected, non-expired link redirects (302), expired link returns 410.
+- **`tests/Feature/LinkPasswordProtectionTest.php`:** 9 feature tests: password hashed in DB, short password rejected, password-protected GET renders gate page, cached password-protected link renders gate, correct password redirects, wrong password errors, empty password required validation, non-existent link error, expired link error.
+
+### Changed
+
+- **`app/Http/Requests/StoreLinkRequest.php`:** Added `expires_at` (`nullable|date|after:now`) and `password` (`nullable|string|min:4|max:72`) validation rules with human-readable error messages and attribute labels.
+- **`app/Http/Controllers/LinkController.php`:** `store()` now persists `expires_at` and `password` from validated request data into the newly created `Link` record. Updated docblock to remove stale "Day 8 stub" references.
+- **`app/Services/RedirectCacheService.php`:** Cache payload now includes `has_password` (bool) so the `RedirectController` can gate password-protected links without a DB hit on cache-warm requests. Updated `@return` type hint and docblock schema comment.
+- **`app/Http/Controllers/RedirectController.php`:** After expiry check, if `has_password` is true (from cache) or `password !== null` (from DB), renders the `Links/PasswordGate` Inertia page. Cache is warmed before rendering the gate. Updated `resolveFromPayload()` signature to accept `shortCode` for the gate response.
+- **`resources/js/Pages/Links/Shorten.vue`:** Advanced Options section expanded with two new fields: **Expiration Date** (`datetime-local` input with hint text) and **Password Protection** (password input with show/hide toggle and hint text). Both fields included in Inertia form state and submission.
+- **`routes/web.php`:** Added `POST /{shortCode}/auth` route pointing to `PasswordGateController` with CSRF protection (web middleware). Route constrained to `[0-9A-Za-z_-]+` to support custom aliases with dashes/underscores.
+
+---
+
+## [0.8.0] — 2026-07-22 · Day 8: Dashboard UI & Link Management
+
+### Added
+
+- **`app/Http/Controllers/DashboardController.php`:** Serves the `/dashboard` route with links, stats, and search.
+- **`resources/js/Components/Pagination.vue`:** Reusable pagination component for Inertia.js.
+- **`tests/Feature/LinkManagementTest.php`:** Feature tests covering dashboard render, search filtering, update/delete authorization, and cache eviction.
+
+### Changed
+
+- **`resources/js/Pages/Dashboard.vue`:** Completely revamped from a UI component showcase into a fully functional link management dashboard. Includes data table, search input, stats cards, and edit/delete modals.
+- **`app/Http/Controllers/LinkController.php`:** Implemented `update()` and `destroy()` methods with validation and ownership authorization checks (`abort_if`).
+- **`routes/web.php`:** Updated `/dashboard` route to point to `DashboardController@index` instead of a closure.
+
+---
+
 ## [0.7.0] — 2026-07-22 · Day 7: Redirection, Caching & 301/302 Strategy
 
 ### Added

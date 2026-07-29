@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BlockedUrl;
 use App\Models\Link;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,7 +39,7 @@ class LinkShorteningTest extends TestCase
         $response->assertRedirect(route('links.index'));
 
         $this->assertDatabaseHas('links', [
-            'user_id'      => $user->id,
+            'user_id' => $user->id,
             'original_url' => 'https://www.example.com/some/long/path',
         ]);
 
@@ -47,8 +48,8 @@ class LinkShorteningTest extends TestCase
     }
 
     /**
-     * Tracking parameters should be stripped during normalization.
-     * The stored original_url should not contain utm_ or fbclid params.
+     * Tracking parameters (like fbclid) should be stripped during normalization,
+     * but UTM parameters should be preserved for the UTM builder.
      */
     public function test_tracking_params_are_stripped_during_normalization(): void
     {
@@ -60,7 +61,7 @@ class LinkShorteningTest extends TestCase
 
         $link = Link::where('user_id', $user->id)->first();
         $this->assertNotNull($link, 'A link should have been created');
-        $this->assertStringNotContainsString('utm_source', $link->original_url);
+        $this->assertStringContainsString('utm_source=fb', $link->original_url);
         $this->assertStringNotContainsString('fbclid', $link->original_url);
         $this->assertStringContainsString('keep=this', $link->original_url);
     }
@@ -243,5 +244,101 @@ class LinkShorteningTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page->component('Links/Shorten'));
+    }
+
+    // ── Custom Aliases ────────────────────────────────────────────────────────
+
+    public function test_user_can_create_link_with_custom_alias(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $response = $this->actingAs($user)->post(route('links.store'), [
+            'original_url' => 'https://www.example.com/custom',
+            'custom_alias' => 'my-custom-url',
+        ]);
+
+        $response->assertRedirect(route('links.index'));
+
+        $this->assertDatabaseHas('links', [
+            'user_id' => $user->id,
+            'original_url' => 'https://www.example.com/custom',
+            'short_code' => 'my-custom-url',
+            'is_custom_alias' => 1,
+        ]);
+    }
+
+    public function test_custom_alias_must_be_unique(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        // Create an existing link
+        Link::factory()->create([
+            'short_code' => 'taken-alias',
+            'is_custom_alias' => true,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('links.store'), [
+            'original_url' => 'https://www.example.com/custom',
+            'custom_alias' => 'taken-alias',
+        ]);
+
+        $response->assertSessionHasErrors(['custom_alias']);
+    }
+
+    public function test_reserved_words_cannot_be_used_as_custom_alias(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        $response = $this->actingAs($user)->post(route('links.store'), [
+            'original_url' => 'https://www.example.com/api-test',
+            'custom_alias' => 'api',
+        ]);
+
+        $response->assertSessionHasErrors(['custom_alias']);
+    }
+
+    public function test_deduplication_is_skipped_if_custom_alias_provided(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        // Create first link
+        $this->actingAs($user)->post(route('links.store'), [
+            'original_url' => 'https://www.example.com/duplicate',
+        ]);
+
+        // Create second link with SAME original_url but specific custom_alias
+        $response = $this->actingAs($user)->post(route('links.store'), [
+            'original_url' => 'https://www.example.com/duplicate',
+            'custom_alias' => 'my-alias',
+        ]);
+
+        $response->assertRedirect(route('links.index'));
+
+        // Should have two distinct links now
+        $this->assertDatabaseCount('links', 2);
+
+        $this->assertDatabaseHas('links', [
+            'short_code' => 'my-alias',
+        ]);
+    }
+
+    public function test_malicious_url_is_rejected(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+
+        // Add a known malicious URL to the blocked_urls table
+        BlockedUrl::factory()->create([
+            'url_hash' => hash('sha256', 'https://www.example.com/malware'),
+            'url' => 'https://www.example.com/malware',
+        ]);
+
+        $response = $this->actingAs($user)->post(route('links.store'), [
+            'original_url' => 'https://www.example.com/malware',
+        ]);
+
+        $response->assertSessionHasErrors(['original_url']);
+        $this->assertDatabaseMissing('links', [
+            'original_url' => 'https://www.example.com/malware',
+        ]);
     }
 }

@@ -34,12 +34,6 @@ class UrlNormalizerService
      * @var list<string>
      */
     private const STRIP_PARAMS = [
-        'utm_source',
-        'utm_medium',
-        'utm_campaign',
-        'utm_term',
-        'utm_content',
-        'utm_id',
         'fbclid',
         'gclid',
         'gclsrc',
@@ -77,20 +71,20 @@ class UrlNormalizerService
      * This method first validates the URL then applies the normalization pipeline.
      * If the URL is invalid, an {@see InvalidUrlException} is thrown.
      *
-     * @param  string $url  The raw URL submitted by the user.
-     * @return string       The canonical, normalized URL ready for storage.
+     * @param  string  $url  The raw URL submitted by the user.
+     * @return string The canonical, normalized URL ready for storage.
      *
-     * @throws InvalidUrlException  If the URL is structurally invalid, uses a
-     *                              disallowed scheme, targets a private/loopback
-     *                              host, or points back at this application.
+     * @throws InvalidUrlException If the URL is structurally invalid, uses a
+     *                             disallowed scheme, targets a private/loopback
+     *                             host, or points back at this application.
      */
     public function normalize(string $url): string
     {
         $url = trim($url);
 
         // Step 1: inject scheme if completely missing
-        if (!str_contains($url, '://')) {
-            $url = 'https://' . $url;
+        if (! str_contains($url, '://')) {
+            $url = 'https://'.$url;
         }
 
         // Validate before continuing normalization
@@ -110,16 +104,16 @@ class UrlNormalizerService
 
         // Step 4 & 5: strip tracking params, sort remaining
         $query = '';
-        if (!empty($parts['query'])) {
+        if (! empty($parts['query'])) {
             parse_str($parts['query'], $params);
 
             foreach (self::STRIP_PARAMS as $stripKey) {
                 unset($params[$stripKey]);
             }
 
-            if (!empty($params)) {
+            if (! empty($params)) {
                 ksort($params);
-                $query = '?' . http_build_query($params);
+                $query = '?'.http_build_query($params);
             }
         }
 
@@ -130,14 +124,14 @@ class UrlNormalizerService
         }
 
         // Reassemble
-        $normalized = $scheme . '://' . $host;
+        $normalized = $scheme.'://'.$host;
         if ($port !== null) {
-            $normalized .= ':' . $port;
+            $normalized .= ':'.$port;
         }
-        $normalized .= $path . $query;
+        $normalized .= $path.$query;
 
-        if (!empty($parts['fragment'])) {
-            $normalized .= '#' . $parts['fragment'];
+        if (! empty($parts['fragment'])) {
+            $normalized .= '#'.$parts['fragment'];
         }
 
         return $normalized;
@@ -148,8 +142,7 @@ class UrlNormalizerService
      *
      * Throws {@see InvalidUrlException} with a human-readable message on failure.
      *
-     * @param  string $url  The URL string to validate (must already have a scheme).
-     * @return void
+     * @param  string  $url  The URL string to validate (must already have a scheme).
      *
      * @throws InvalidUrlException
      */
@@ -162,7 +155,7 @@ class UrlNormalizerService
         }
 
         $scheme = strtolower($parts['scheme'] ?? '');
-        if (!in_array($scheme, ['http', 'https'], true)) {
+        if (! in_array($scheme, ['http', 'https'], true)) {
             throw new InvalidUrlException("URL scheme \"{$scheme}\" is not allowed. Only http and https URLs are accepted.");
         }
 
@@ -171,7 +164,7 @@ class UrlNormalizerService
         // Validate that the host contains only valid hostname characters.
         // This catches strings like "not-a-url!!!" that parse_url extracts as a "host"
         // but are clearly not valid DNS names or IP addresses.
-        if (!preg_match('/^[a-z0-9\-\.]+$/i', $host)) {
+        if (! preg_match('/^[a-z0-9\-\.]+$/i', $host)) {
             throw new InvalidUrlException('The URL contains an invalid hostname. Please provide a valid URL.');
         }
 
@@ -198,8 +191,8 @@ class UrlNormalizerService
     /**
      * Determine whether the given IP address falls within a private or reserved range.
      *
-     * @param  string $ip  An IPv4 or IPv6 address string.
-     * @return bool        True if the IP is private/loopback/reserved.
+     * @param  string  $ip  An IPv4 or IPv6 address string.
+     * @return bool True if the IP is private/loopback/reserved.
      */
     private function isPrivateOrReservedIp(string $ip): bool
     {

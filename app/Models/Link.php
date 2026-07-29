@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use Database\Factories\LinkFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * Link is the core entity of the URL shortener.
@@ -29,7 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $description
  * @property bool $is_custom_alias
  * @property string|null $password
- * @property \Illuminate\Support\Carbon|null $expires_at
+ * @property Carbon|null $expires_at
  * @property string|null $ios_deep_link
  * @property string|null $android_deep_link
  * @property string|null $utm_source
@@ -40,17 +44,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $click_count
  * @property bool $is_active
  * @property array|null $tags
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\User $user
- * @property-read \App\Models\Workspace|null $workspace
- * @property-read \App\Models\CustomDomain|null $customDomain
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Click> $clicks
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read User $user
+ * @property-read Workspace|null $workspace
+ * @property-read CustomDomain|null $customDomain
+ * @property-read Collection<int, Click> $clicks
  */
 class Link extends Model
 {
-    /** @use HasFactory<\Database\Factories\LinkFactory> */
+    /** @use HasFactory<LinkFactory> */
     use HasFactory, SoftDeletes;
 
     /**
@@ -99,11 +103,11 @@ class Link extends Model
     {
         return [
             'is_custom_alias' => 'boolean',
-            'password'        => 'hashed',
-            'expires_at'      => 'datetime',
-            'is_active'       => 'boolean',
-            'tags'            => 'array',
-            'click_count'     => 'integer',
+            'password' => 'hashed',
+            'expires_at' => 'datetime',
+            'is_active' => 'boolean',
+            'tags' => 'array',
+            'click_count' => 'integer',
         ];
     }
 
@@ -143,6 +147,16 @@ class Link extends Model
         return $this->hasMany(Click::class);
     }
 
+    /**
+     * Bio pages this link is attached to.
+     */
+    public function bioPages(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(BioPage::class)
+            ->withPivot('display_order')
+            ->orderByPivot('display_order');
+    }
+
     // -------------------------------------------------------------------------
     // Scopes
     // -------------------------------------------------------------------------
@@ -150,8 +164,8 @@ class Link extends Model
     /**
      * Scope to only active, non-expired links.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @param  Builder  $query
+     * @return Builder
      */
     public function scopeActive($query)
     {
@@ -165,9 +179,8 @@ class Link extends Model
     /**
      * Scope to only links owned by a specific user.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param int $userId
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @param  Builder  $query
+     * @return Builder
      */
     public function scopeForUser($query, int $userId)
     {

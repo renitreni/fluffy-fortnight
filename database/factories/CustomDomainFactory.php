@@ -4,21 +4,20 @@ namespace Database\Factories;
 
 use App\Models\CustomDomain;
 use App\Models\User;
-use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
  * Factory for generating CustomDomain test instances.
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CustomDomain>
+ * @extends Factory<CustomDomain>
  */
 class CustomDomainFactory extends Factory
 {
     /**
      * The name of the factory's corresponding model.
      *
-     * @var class-string<\App\Models\CustomDomain>
+     * @var class-string<CustomDomain>
      */
     protected $model = CustomDomain::class;
 
@@ -30,13 +29,13 @@ class CustomDomainFactory extends Factory
     public function definition(): array
     {
         return [
-            'workspace_id'       => null,
-            'user_id'            => User::factory(),
-            'domain'             => 'link.' . $this->faker->unique()->domainName(),
-            'is_verified'        => false,
-            'verified_at'        => null,
+            'workspace_id' => null,
+            'user_id' => User::factory(),
+            'domain' => 'link.'.$this->faker->unique()->domainName(),
+            'is_verified' => false,
+            'verified_at' => null,
             'verification_token' => Str::random(32),
-            'ssl_status'         => 'pending',
+            'ssl_status' => 'pending',
         ];
     }
 
@@ -48,7 +47,7 @@ class CustomDomainFactory extends Factory
         return $this->state([
             'is_verified' => true,
             'verified_at' => now(),
-            'ssl_status'  => 'active',
+            'ssl_status' => 'active',
         ]);
     }
 }

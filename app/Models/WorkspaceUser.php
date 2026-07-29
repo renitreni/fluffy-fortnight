@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Carbon;
 
 /**
  * WorkspaceUser is the Eloquent pivot model for the workspace_user table.
@@ -15,12 +16,12 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property int $id
  * @property int $workspace_id
  * @property int $user_id
- * @property string $role  One of: admin, editor, viewer
- * @property \Illuminate\Support\Carbon|null $joined_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\Workspace $workspace
- * @property-read \App\Models\User $user
+ * @property string $role One of: admin, editor, viewer
+ * @property Carbon|null $joined_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Workspace $workspace
+ * @property-read User $user
  */
 class WorkspaceUser extends Pivot
 {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreLinkRequest;
 use App\Models\Link;
+use App\Models\User;
 use App\Services\RedirectCacheService;
 use App\Services\ShortCodeGeneratorService;
 use App\Services\UrlNormalizerService;
@@ -18,13 +19,13 @@ use Inertia\Response;
  * Handles link shortening, listing, and CRUD operations.
  *
  * Routes:
- *   GET  /links/shorten  → index()    Renders the Inertia shorten page.
- *   POST /links          → store()    Accepts a long URL and returns a short code.
- *   PUT  /links/{link}   → update()   Updates link attributes (stubs; full logic in Day 8).
- *   DELETE /links/{link} → destroy()  Soft-deletes a link (stubs; full logic in Day 8).
+ *   GET  /links/shorten        → index()    Renders the Inertia shorten page.
+ *   POST /links                → store()    Accepts a long URL and returns a short code.
+ *   PUT  /links/{link}         → update()   Updates link attributes.
+ *   DELETE /links/{link}       → destroy()  Soft-deletes a link.
  *
  * Auth + verified middleware is enforced at the route level.
- * Cache invalidation is wired here; Day 8 fills in the DB-mutation logic.
+ * Cache invalidation is wired here to evict stale Redis entries on mutation.
  */
 class LinkController extends Controller
 {
@@ -39,23 +40,30 @@ class LinkController extends Controller
      *
      * Passes the user's 5 most recently created links so they can be displayed
      * in the "recent links" section without a separate API call.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Inertia\Response
      */
     public function index(Request $request): Response
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
-        $recentLinks = Link::forUser($user->id)
+        $recentLinks = Link::where('workspace_id', $user->current_workspace_id)
+            ->when(!$user->current_workspace_id, fn ($q) => $q->forUser($user->id))
             ->latest()
             ->take(5)
             ->get(['id', 'short_code', 'original_url', 'title', 'click_count', 'created_at']);
+            
+        $customDomainsQuery = $user->current_workspace_id
+            ? $user->currentWorkspace->customDomains()
+            : $user->customDomains()->whereNull('workspace_id');
+
+        $customDomains = $customDomainsQuery
+            ->where('is_verified', true)
+            ->get(['id', 'domain']);
 
         return Inertia::render('Links/Shorten', [
             'recentLinks' => $recentLinks,
-            'appUrl'      => rtrim(config('app.url'), '/'),
+            'appUrl' => rtrim(config('app.url'), '/'),
+            'customDomains' => $customDomains,
         ]);
     }
 
@@ -69,30 +77,33 @@ class LinkController extends Controller
      *   3. Create a new Link record (without short_code) to obtain the DB id.
      *   4. Encode the id via Base62 to generate the short_code.
      *   5. Persist the short_code and redirect back with a success flash.
-     *
-     * @param  \App\Http\Requests\StoreLinkRequest $request
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(StoreLinkRequest $request): RedirectResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         $normalizedUrl = $this->normalizer->normalize($request->validated('original_url'));
 
-        // --- Deduplication: per-user, same normalized URL ---
-        $existingLink = Link::forUser($user->id)
-            ->where('original_url', $normalizedUrl)
-            ->first();
+        // --- Deduplication: per-workspace/user, same normalized URL ---
+        // Skip deduplication if the user explicitly provided a custom alias.
+        $existingLink = null;
+        if (! $request->filled('custom_alias')) {
+            $existingLink = Link::where('original_url', $normalizedUrl)
+                ->where('workspace_id', $user->current_workspace_id)
+                ->when(!$user->current_workspace_id, fn ($q) => $q->forUser($user->id))
+                ->first();
+        }
 
         if ($existingLink !== null) {
+            $existingLink->load('customDomain');
             return redirect()->route('links.index')
                 ->with('flash', [
-                    'type'      => 'info',
-                    'message'   => 'This URL was already shortened. Here is your existing short link.',
-                    'link'      => $this->buildShortUrl($existingLink->short_code),
+                    'type' => 'info',
+                    'message' => 'This URL was already shortened. Here is your existing short link.',
+                    'link' => $this->buildShortUrl($existingLink),
                     'shortCode' => $existingLink->short_code,
-                    'reused'    => true,
+                    'reused' => true,
                 ]);
         }
 
@@ -100,34 +111,44 @@ class LinkController extends Controller
         // short_code is NOT NULL + UNIQUE, so we insert a unique UUID placeholder
         // to obtain the DB auto-increment id, then immediately replace it with the
         // Base62-encoded value. The whole operation is atomic.
+        // If a custom alias is provided, we use it directly without a placeholder.
         $link = DB::transaction(function () use ($user, $normalizedUrl, $request) {
-            /** @var \App\Models\Link $newLink */
+            $customAlias = $request->validated('custom_alias');
+
+            /** @var Link $newLink */
             $newLink = Link::create([
-                'user_id'      => $user->id,
+                'user_id' => $user->id,
+                'workspace_id' => $user->current_workspace_id,
                 'original_url' => $normalizedUrl,
-                'title'        => $request->validated('title'),
-                'is_active'    => true,
-                'click_count'  => 0,
-                'short_code'   => 'tmp_' . Str::uuid(), // temporary; replaced below
+                'title' => $request->validated('title'),
+                'is_active' => true,
+                'click_count' => 0,
+                'short_code' => $customAlias ?? 'tmp_'.Str::uuid(),
+                'is_custom_alias' => $customAlias !== null,
+                'expires_at' => $request->validated('expires_at'),
+                'password' => $request->validated('password'),
+                'custom_domain_id' => $request->validated('custom_domain_id'),
             ]);
 
-            $shortCode = $this->generator->generateForLink($newLink);
-            $newLink->short_code = $shortCode;
+            if ($customAlias === null) {
+                $this->generator->generateForLink($newLink);
+            }
 
             return $newLink;
         });
 
         // Warm the Redis cache immediately so the first redirect is served
         // without a DB round-trip.
+        $link->load('customDomain');
         $this->redirectCache->put($link);
 
         return redirect()->route('links.index')
             ->with('flash', [
-                'type'      => 'success',
-                'message'   => 'Your short link has been created!',
-                'link'      => $this->buildShortUrl($link->short_code),
+                'type' => 'success',
+                'message' => 'Your short link has been created!',
+                'link' => $this->buildShortUrl($link),
                 'shortCode' => $link->short_code,
-                'reused'    => false,
+                'reused' => false,
             ]);
     }
 
@@ -136,21 +157,26 @@ class LinkController extends Controller
      *
      * Stub: DB-mutation logic implemented in Day 8. Cache invalidation is
      * wired here so Day 8 only needs to add the update logic.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Link          $link
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, Link $link): RedirectResponse
     {
-        // TODO (Day 8): validate and apply attribute changes.
+        $user = $request->user();
+        $canEdit = $link->user_id === $user->id || ($link->workspace_id && $user->isMemberOf($link->workspace));
+        abort_unless($canEdit, 403);
+
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'is_active' => ['boolean'],
+        ]);
+
+        $link->update($validated);
 
         // Evict the cache so the next redirect performs a fresh DB lookup.
         $this->redirectCache->forget($link->short_code);
 
-        return redirect()->route('links.index')
+        return redirect()->back()
             ->with('flash', [
-                'type'    => 'success',
+                'type' => 'success',
                 'message' => 'Link updated successfully.',
             ]);
     }
@@ -161,34 +187,32 @@ class LinkController extends Controller
      * Stub: full authorization and response logic implemented in Day 8.
      * Cache invalidation is wired here so stale Redis entries do not serve
      * redirects after deletion.
-     *
-     * @param  \App\Models\Link $link
-     * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Link $link): RedirectResponse
+    public function destroy(Request $request, Link $link): RedirectResponse
     {
+        $user = $request->user();
+        $canDelete = $link->user_id === $user->id || ($link->workspace_id && $user->isMemberOf($link->workspace));
+        abort_unless($canDelete, 403);
+
         // Evict from cache before soft-deleting so concurrent requests
         // cannot sneak a redirect through after deletion.
         $this->redirectCache->forget($link->short_code);
 
-        // TODO (Day 8): authorize, then soft-delete.
         $link->delete();
 
-        return redirect()->route('links.index')
+        return redirect()->back()
             ->with('flash', [
-                'type'    => 'success',
+                'type' => 'success',
                 'message' => 'Link deleted.',
             ]);
     }
 
     /**
-     * Build the full short URL from a short code.
-     *
-     * @param  string $shortCode
-     * @return string
+     * Build the full short URL from a link.
      */
-    private function buildShortUrl(string $shortCode): string
+    private function buildShortUrl(Link $link): string
     {
-        return rtrim(config('app.url'), '/') . '/' . $shortCode;
+        $host = $link->customDomain ? 'https://' . $link->customDomain->domain : rtrim(config('app.url'), '/');
+        return $host.'/'.$link->short_code;
     }
 }

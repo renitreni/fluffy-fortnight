@@ -10,14 +10,14 @@ use Illuminate\Support\Str;
 /**
  * Factory for generating Workspace test instances.
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Workspace>
+ * @extends Factory<Workspace>
  */
 class WorkspaceFactory extends Factory
 {
     /**
      * The name of the factory's corresponding model.
      *
-     * @var class-string<\App\Models\Workspace>
+     * @var class-string<Workspace>
      */
     protected $model = Workspace::class;
 
@@ -31,11 +31,11 @@ class WorkspaceFactory extends Factory
         $name = $this->faker->unique()->company();
 
         return [
-            'owner_id'             => User::factory(),
-            'name'                 => $name,
-            'slug'                 => Str::slug($name) . '-' . Str::random(4),
-            'logo'                 => null,
-            'custom_domain_limit'  => 1,
+            'owner_id' => User::factory(),
+            'name' => $name,
+            'slug' => Str::slug($name).'-'.Str::random(4),
+            'logo' => null,
+            'custom_domain_limit' => 1,
         ];
     }
 }

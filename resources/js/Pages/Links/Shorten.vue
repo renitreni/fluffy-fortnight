@@ -27,6 +27,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    customDomains: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const toast = useToastStore();
@@ -37,9 +41,112 @@ const page = usePage();
 const form = useForm({
     original_url: '',
     title: '',
+    custom_alias: '',
+    expires_at: '',
+    password: '',
+    ios_deep_link: '',
+    android_deep_link: '',
+    custom_domain_id: '',
 });
 
-const showTitleField = ref(false);
+const showAdvanced = ref(false);
+const showUtmBuilder = ref(false);
+const showPassword = ref(false);
+
+const utmParams = ref({
+    utm_source: '',
+    utm_medium: '',
+    utm_campaign: '',
+    utm_term: '',
+    utm_content: '',
+});
+
+let isUpdatingUrl = false;
+let isUpdatingUtms = false;
+
+watch(
+    () => form.original_url,
+    (newUrl) => {
+        if (isUpdatingUrl) return;
+        try {
+            let urlToParse = newUrl;
+            if (urlToParse && !urlToParse.includes('://')) {
+                urlToParse = 'https://' + urlToParse;
+            }
+            const urlObj = new URL(urlToParse);
+            const params = new URLSearchParams(urlObj.search);
+
+            isUpdatingUtms = true;
+            let hasUtms = false;
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach((param) => {
+                const val = params.get(param) || '';
+                if (utmParams.value[param] !== val) {
+                    utmParams.value[param] = val;
+                }
+                if (val) hasUtms = true;
+            });
+
+            if (hasUtms && !showUtmBuilder.value) {
+                showUtmBuilder.value = true;
+            }
+
+            setTimeout(() => {
+                isUpdatingUtms = false;
+            }, 0);
+        } catch (e) {
+            // Invalid URL, do nothing
+        }
+    },
+);
+
+watch(
+    utmParams,
+    (newUtms) => {
+        if (isUpdatingUtms) return;
+        if (!form.original_url) return;
+
+        try {
+            isUpdatingUrl = true;
+            let urlToParse = form.original_url;
+            let missingScheme = false;
+            if (!urlToParse.includes('://')) {
+                missingScheme = true;
+                urlToParse = 'https://' + urlToParse;
+            }
+
+            const urlObj = new URL(urlToParse);
+            const params = new URLSearchParams(urlObj.search);
+
+            Object.keys(newUtms).forEach((key) => {
+                if (newUtms[key]) {
+                    params.set(key, newUtms[key]);
+                } else {
+                    params.delete(key);
+                }
+            });
+
+            urlObj.search = params.toString();
+            let finalUrl = urlObj.toString();
+            if (missingScheme) {
+                finalUrl = finalUrl.replace(/^https:\/\//, '');
+            }
+
+            form.original_url = finalUrl;
+            setTimeout(() => {
+                isUpdatingUrl = false;
+            }, 0);
+        } catch (e) {
+            // Unparseable URL, do nothing
+        }
+    },
+    { deep: true },
+);
+
+const selectedDomainText = computed(() => {
+    if (!form.custom_domain_id) return props.appUrl.replace(/^https?:\/\//, '');
+    const domain = props.customDomains.find(d => d.id === form.custom_domain_id);
+    return domain ? domain.domain : props.appUrl.replace(/^https?:\/\//, '');
+});
 
 // ── Flash / Result State ─────────────────────────────────────────────────────
 
@@ -108,15 +215,28 @@ function submit() {
 // ── Animation trigger ────────────────────────────────────────────────────────
 
 const mounted = ref(false);
-onMounted(() => { mounted.value = true; });
+onMounted(() => {
+    mounted.value = true;
+});
 </script>
 
 <template>
     <AppLayout>
         <template #header>
             <div class="flex items-center gap-3">
-                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 shadow-lg shadow-brand-500/30">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div
+                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 shadow-lg shadow-brand-500/30"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                     </svg>
@@ -128,27 +248,49 @@ onMounted(() => { mounted.value = true; });
             </div>
         </template>
 
-        <div class="space-y-8" :class="{ 'opacity-0 translate-y-4': !mounted, 'opacity-100 translate-y-0 transition-all duration-500': mounted }">
-
+        <div
+            class="space-y-8"
+            :class="{
+                'opacity-0 translate-y-4': !mounted,
+                'opacity-100 translate-y-0 transition-all duration-500': mounted,
+            }"
+        >
             <!-- ── Main Shorten Card ───────────────────────────────────────── -->
-            <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none ring-1 ring-gray-200/60 dark:ring-gray-700/60">
-
+            <div
+                class="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none ring-1 ring-gray-200/60 dark:ring-gray-700/60"
+            >
                 <!-- Gradient accent bar -->
-                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-purple-500 to-pink-500"></div>
+                <div
+                    class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-purple-500 to-pink-500"
+                ></div>
 
                 <div class="p-6 sm:p-8">
                     <form id="shorten-form" @submit.prevent="submit" novalidate>
-
                         <!-- URL Input -->
                         <div class="space-y-2">
-                            <label for="original_url" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                            <label
+                                for="original_url"
+                                class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                            >
                                 Long URL
                             </label>
 
-                            <div class="url-input-wrapper" :class="{ 'url-input-wrapper--error': form.errors.original_url }">
+                            <div
+                                class="url-input-wrapper"
+                                :class="{ 'url-input-wrapper--error': form.errors.original_url }"
+                            >
                                 <!-- Link icon -->
                                 <div class="url-input-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
                                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                     </svg>
@@ -174,9 +316,24 @@ onMounted(() => { mounted.value = true; });
                                     class="paste-btn"
                                     title="Paste from clipboard"
                                     :disabled="form.processing"
-                                    @click="async () => { try { form.original_url = await navigator.clipboard.readText(); } catch {} }"
+                                    @click="
+                                        async () => {
+                                            try {
+                                                form.original_url = await navigator.clipboard.readText();
+                                            } catch {}
+                                        }
+                                    "
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                                     </svg>
@@ -187,40 +344,371 @@ onMounted(() => { mounted.value = true; });
                             <InputError :message="form.errors.original_url" />
                         </div>
 
-                        <!-- Optional title toggle -->
-                        <div class="mt-3">
+                        <!-- Optional advanced options and UTM builder toggles -->
+                        <div class="mt-3 flex flex-wrap items-center gap-6">
                             <button
-                                id="toggle-title-btn"
+                                id="toggle-advanced-btn"
                                 type="button"
                                 class="inline-flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium transition-colors"
-                                @click="showTitleField = !showTitleField"
+                                @click="showAdvanced = !showAdvanced"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform duration-200" :class="{ 'rotate-45': showTitleField }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3.5 w-3.5 transition-transform duration-200"
+                                    :class="{ 'rotate-45': showAdvanced }"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
                                     <circle cx="12" cy="12" r="10" />
                                     <line x1="12" y1="8" x2="12" y2="16" />
                                     <line x1="8" y1="12" x2="16" y2="12" />
                                 </svg>
-                                {{ showTitleField ? 'Hide title' : 'Add a title (optional)' }}
+                                {{ showAdvanced ? 'Hide advanced options' : 'Advanced options (Title, Custom Alias)' }}
+                            </button>
+
+                            <button
+                                id="toggle-utm-btn"
+                                type="button"
+                                class="inline-flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium transition-colors"
+                                @click="showUtmBuilder = !showUtmBuilder"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3.5 w-3.5 transition-transform duration-200"
+                                    :class="{ 'rotate-45': showUtmBuilder }"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="16" />
+                                    <line x1="8" y1="12" x2="16" y2="12" />
+                                </svg>
+                                {{ showUtmBuilder ? 'Hide UTM Builder' : 'UTM Builder' }}
                             </button>
                         </div>
 
-                        <!-- Title field (collapsible) -->
+                        <!-- Advanced fields (collapsible) -->
                         <Transition name="slide-down">
-                            <div v-if="showTitleField" class="mt-4 space-y-2">
-                                <label for="link_title" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                    Title
-                                </label>
-                                <input
-                                    id="link_title"
-                                    v-model="form.title"
-                                    type="text"
-                                    name="title"
-                                    placeholder="e.g. My Product Launch"
-                                    maxlength="255"
-                                    class="title-input"
-                                    :disabled="form.processing"
-                                />
-                                <InputError :message="form.errors.title" />
+                            <div v-if="showAdvanced" class="mt-4 space-y-4">
+                                <!-- Title -->
+                                <div class="space-y-2">
+                                    <label
+                                        for="link_title"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Title <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+                                    <input
+                                        id="link_title"
+                                        v-model="form.title"
+                                        type="text"
+                                        name="title"
+                                        placeholder="e.g. My Product Launch"
+                                        maxlength="255"
+                                        class="title-input"
+                                        :disabled="form.processing"
+                                    />
+                                    <InputError :message="form.errors.title" />
+                                </div>
+
+                                <!-- Custom Domain -->
+                                <div class="space-y-2" v-if="customDomains.length > 0">
+                                    <label
+                                        for="custom_domain_id"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Domain <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+                                    <select
+                                        id="custom_domain_id"
+                                        v-model="form.custom_domain_id"
+                                        class="title-input w-full"
+                                        :disabled="form.processing"
+                                    >
+                                        <option value="">{{ props.appUrl.replace(/^https?:\/\//, '') }} (Default)</option>
+                                        <option v-for="domain in customDomains" :key="domain.id" :value="domain.id">
+                                            {{ domain.domain }}
+                                        </option>
+                                    </select>
+                                    <InputError :message="form.errors.custom_domain_id" />
+                                </div>
+
+                                <!-- Custom Alias -->
+                                <div class="space-y-2">
+                                    <label
+                                        for="custom_alias"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Custom Alias <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+                                    <div
+                                        class="alias-input-wrapper"
+                                        :class="{ 'alias-input-wrapper--error': form.errors.custom_alias }"
+                                    >
+                                        <span class="alias-prefix"
+                                            >{{ selectedDomainText }}/</span
+                                        >
+                                        <input
+                                            id="custom_alias"
+                                            v-model="form.custom_alias"
+                                            type="text"
+                                            name="custom_alias"
+                                            placeholder="my-custom-url"
+                                            maxlength="255"
+                                            class="alias-input"
+                                            :disabled="form.processing"
+                                            @keydown.enter.prevent="submit"
+                                        />
+                                    </div>
+                                    <InputError :message="form.errors.custom_alias" />
+                                </div>
+
+                                <!-- Expiration Date -->
+                                <div class="space-y-2">
+                                    <label
+                                        for="expires_at"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Expiration Date
+                                        <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+                                    <input
+                                        id="expires_at"
+                                        v-model="form.expires_at"
+                                        type="datetime-local"
+                                        name="expires_at"
+                                        class="title-input"
+                                        :disabled="form.processing"
+                                    />
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        Link will return 410 Gone after this date. Leave empty for no expiry.
+                                    </p>
+                                    <InputError :message="form.errors.expires_at" />
+                                </div>
+
+                                <!-- Password Protection -->
+                                <div class="space-y-2">
+                                    <label
+                                        for="link_password"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Password Protection
+                                        <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input
+                                            id="link_password"
+                                            v-model="form.password"
+                                            :type="showPassword ? 'text' : 'password'"
+                                            name="password"
+                                            placeholder="Min. 4 characters"
+                                            maxlength="72"
+                                            class="title-input pr-12"
+                                            :disabled="form.processing"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded"
+                                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                                            @click="showPassword = !showPassword"
+                                        >
+                                            <svg
+                                                v-if="!showPassword"
+                                                class="w-5 h-5"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                                                />
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                />
+                                            </svg>
+                                            <svg
+                                                v-else
+                                                class="w-5 h-5"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        Visitors must enter this password to access the link.
+                                    </p>
+                                    <InputError :message="form.errors.password" />
+                                </div>
+
+                                <!-- Mobile Deep Links -->
+                                <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700 mt-6">
+                                    <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                        Mobile Deep Links
+                                        <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </h3>
+
+                                    <!-- iOS Deep Link -->
+                                    <div class="space-y-2">
+                                        <label
+                                            for="ios_deep_link"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            iOS Deep Link
+                                        </label>
+                                        <input
+                                            id="ios_deep_link"
+                                            v-model="form.ios_deep_link"
+                                            type="text"
+                                            name="ios_deep_link"
+                                            placeholder="twitter://user?id=123"
+                                            maxlength="2048"
+                                            class="title-input"
+                                            :disabled="form.processing"
+                                        />
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            iOS users will be redirected to this app URI instead of the long URL.
+                                        </p>
+                                        <InputError :message="form.errors.ios_deep_link" />
+                                    </div>
+
+                                    <!-- Android Deep Link -->
+                                    <div class="space-y-2">
+                                        <label
+                                            for="android_deep_link"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            Android Deep Link
+                                        </label>
+                                        <input
+                                            id="android_deep_link"
+                                            v-model="form.android_deep_link"
+                                            type="text"
+                                            name="android_deep_link"
+                                            placeholder="twitter://user?id=123"
+                                            maxlength="2048"
+                                            class="title-input"
+                                            :disabled="form.processing"
+                                        />
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            Android users will be redirected to this app URI instead of the long URL.
+                                        </p>
+                                        <InputError :message="form.errors.android_deep_link" />
+                                    </div>
+                                </div>
+                            </div>
+                        </Transition>
+
+                        <!-- UTM Builder (collapsible) -->
+                        <Transition name="slide-down">
+                            <div
+                                v-if="showUtmBuilder"
+                                class="mt-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-4"
+                            >
+                                <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                                    UTM Parameters
+                                </h3>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            for="utm_source"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            Source
+                                            <span class="text-gray-400 font-normal">(e.g. google, newsletter)</span>
+                                        </label>
+                                        <input
+                                            id="utm_source"
+                                            v-model="utmParams.utm_source"
+                                            type="text"
+                                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                                            :disabled="form.processing"
+                                        />
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label
+                                            for="utm_medium"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            Medium <span class="text-gray-400 font-normal">(e.g. cpc, email)</span>
+                                        </label>
+                                        <input
+                                            id="utm_medium"
+                                            v-model="utmParams.utm_medium"
+                                            type="text"
+                                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                                            :disabled="form.processing"
+                                        />
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label
+                                            for="utm_campaign"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            Campaign <span class="text-gray-400 font-normal">(e.g. summer_sale)</span>
+                                        </label>
+                                        <input
+                                            id="utm_campaign"
+                                            v-model="utmParams.utm_campaign"
+                                            type="text"
+                                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                                            :disabled="form.processing"
+                                        />
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label
+                                            for="utm_term"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            Term <span class="text-gray-400 font-normal">(optional)</span>
+                                        </label>
+                                        <input
+                                            id="utm_term"
+                                            v-model="utmParams.utm_term"
+                                            type="text"
+                                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                                            :disabled="form.processing"
+                                        />
+                                    </div>
+                                    <div class="space-y-1.5 sm:col-span-2">
+                                        <label
+                                            for="utm_content"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            Content <span class="text-gray-400 font-normal">(optional)</span>
+                                        </label>
+                                        <input
+                                            id="utm_content"
+                                            v-model="utmParams.utm_content"
+                                            type="text"
+                                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                                            :disabled="form.processing"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </Transition>
 
@@ -233,7 +721,17 @@ onMounted(() => { mounted.value = true; });
                                 :disabled="form.processing || !form.original_url.trim()"
                             >
                                 <LoadingSpinner v-if="form.processing" size="sm" variant="white" />
-                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg
+                                    v-else
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
                                     <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                                 {{ form.processing ? 'Shortening…' : 'Shorten URL' }}
@@ -253,11 +751,34 @@ onMounted(() => { mounted.value = true; });
                 >
                     <!-- Icon -->
                     <div class="result-card__icon">
-                        <svg v-if="result.reused" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                        <svg
+                            v-if="result.reused"
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
-                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                        <svg
+                            v-else
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
                     </div>
 
@@ -294,18 +815,24 @@ onMounted(() => { mounted.value = true; });
             <!-- ── Recent Links ───────────────────────────────────────────── -->
             <div v-if="recentLinks.length > 0" class="recent-links">
                 <h2 class="recent-links__heading">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                     </svg>
                     Recent links
                 </h2>
 
                 <div class="recent-links__list">
-                    <div
-                        v-for="link in recentLinks"
-                        :key="link.id"
-                        class="recent-link-item"
-                    >
+                    <div v-for="link in recentLinks" :key="link.id" class="recent-link-item">
                         <div class="recent-link-item__info">
                             <a
                                 :href="shortUrl(link.short_code)"
@@ -323,7 +850,16 @@ onMounted(() => { mounted.value = true; });
 
                         <div class="recent-link-item__meta">
                             <span class="recent-link-item__clicks">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-3.5 w-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
                                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                                 </svg>
                                 {{ link.click_count ?? 0 }}
@@ -344,7 +880,16 @@ onMounted(() => { mounted.value = true; });
             <!-- ── Empty state ───────────────────────────────────────────── -->
             <div v-else class="empty-state">
                 <div class="empty-state__icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-8 w-8"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                     </svg>
@@ -352,7 +897,6 @@ onMounted(() => { mounted.value = true; });
                 <p class="empty-state__text">Your shortened links will appear here</p>
                 <p class="empty-state__sub">Paste any long URL above and hit Shorten URL</p>
             </div>
-
         </div>
     </AppLayout>
 </template>
@@ -367,7 +911,9 @@ onMounted(() => { mounted.value = true; });
     background: #f9fafb;
     border: 1.5px solid #e5e7eb;
     border-radius: 0.875rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
 }
 
 :global(.dark) .url-input-wrapper {
@@ -402,9 +948,16 @@ onMounted(() => { mounted.value = true; });
     min-width: 0;
 }
 
-:global(.dark) .url-input { color: #f9fafb; }
-.url-input::placeholder { color: #9ca3af; }
-.url-input:disabled { opacity: 0.6; cursor: not-allowed; }
+:global(.dark) .url-input {
+    color: #f9fafb;
+}
+.url-input::placeholder {
+    color: #9ca3af;
+}
+.url-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 
 .paste-btn {
     display: inline-flex;
@@ -422,9 +975,16 @@ onMounted(() => { mounted.value = true; });
     transition: background 0.15s;
 }
 
-.paste-btn:hover { background: #ddd6fe; }
-:global(.dark) .paste-btn { background: rgba(99,102,241,0.15); color: #a5b4fc; }
-:global(.dark) .paste-btn:hover { background: rgba(99,102,241,0.25); }
+.paste-btn:hover {
+    background: #ddd6fe;
+}
+:global(.dark) .paste-btn {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+}
+:global(.dark) .paste-btn:hover {
+    background: rgba(99, 102, 241, 0.25);
+}
 
 /* ── Title Input ────────────────────────────────────────────────────────── */
 .title-input {
@@ -436,12 +996,87 @@ onMounted(() => { mounted.value = true; });
     font-size: 0.9375rem;
     color: #111827;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
 }
 
-:global(.dark) .title-input { background: #111827; border-color: #374151; color: #f9fafb; }
-.title-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-.title-input::placeholder { color: #9ca3af; }
+:global(.dark) .title-input {
+    background: #111827;
+    border-color: #374151;
+    color: #f9fafb;
+}
+.title-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.title-input::placeholder {
+    color: #9ca3af;
+}
+
+/* ── Custom Alias Input ─────────────────────────────────────────────────── */
+.alias-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #f9fafb;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+
+:global(.dark) .alias-input-wrapper {
+    background: #111827;
+    border-color: #374151;
+}
+
+.alias-input-wrapper:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.alias-input-wrapper--error {
+    border-color: #f87171;
+}
+
+.alias-prefix {
+    padding: 0.75rem 0.5rem 0.75rem 1rem;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 0.9375rem;
+    border-right: 1.5px solid #e5e7eb;
+    user-select: none;
+}
+
+:global(.dark) .alias-prefix {
+    background: #1f2937;
+    color: #9ca3af;
+    border-right-color: #374151;
+}
+
+.alias-input {
+    flex: 1;
+    padding: 0.75rem 1rem 0.75rem 0.5rem;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.9375rem;
+    color: #111827;
+    min-width: 0;
+}
+
+:global(.dark) .alias-input {
+    color: #f9fafb;
+}
+.alias-input::placeholder {
+    color: #9ca3af;
+}
+.alias-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 
 /* ── Shorten Button ─────────────────────────────────────────────────────── */
 .shorten-btn {
@@ -468,7 +1103,9 @@ onMounted(() => { mounted.value = true; });
     box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
 }
 
-.shorten-btn:active:not(:disabled) { transform: translateY(0); }
+.shorten-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
 
 .shorten-btn:disabled {
     opacity: 0.6;
@@ -516,7 +1153,10 @@ onMounted(() => { mounted.value = true; });
     flex-shrink: 0;
 }
 
-.result-card__content { flex: 1; min-width: 0; }
+.result-card__content {
+    flex: 1;
+    min-width: 0;
+}
 
 .result-card__label {
     font-size: 0.8125rem;
@@ -541,15 +1181,26 @@ onMounted(() => { mounted.value = true; });
     word-break: break-all;
 }
 
-.result-card--success .result-card__short-url { color: #059669; }
-.result-card--info    .result-card__short-url { color: #6366f1; }
-:global(.dark) .result-card--success .result-card__short-url { color: #34d399; }
-:global(.dark) .result-card--info    .result-card__short-url { color: #818cf8; }
+.result-card--success .result-card__short-url {
+    color: #059669;
+}
+.result-card--info .result-card__short-url {
+    color: #6366f1;
+}
+:global(.dark) .result-card--success .result-card__short-url {
+    color: #34d399;
+}
+:global(.dark) .result-card--info .result-card__short-url {
+    color: #818cf8;
+}
 
-.result-card__short-url:hover { text-decoration: underline; }
+.result-card__short-url:hover {
+    text-decoration: underline;
+}
 
 /* ── Recent Links ────────────────────────────────────────────────────────── */
-.recent-links {}
+.recent-links {
+}
 
 .recent-links__heading {
     display: flex;
@@ -588,12 +1239,17 @@ onMounted(() => { mounted.value = true; });
 
 .recent-link-item:hover {
     border-color: #e5e7eb;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-:global(.dark) .recent-link-item:hover { border-color: #4b5563; }
+:global(.dark) .recent-link-item:hover {
+    border-color: #4b5563;
+}
 
-.recent-link-item__info { flex: 1; min-width: 0; }
+.recent-link-item__info {
+    flex: 1;
+    min-width: 0;
+}
 
 .recent-link-item__short {
     display: block;
@@ -604,8 +1260,12 @@ onMounted(() => { mounted.value = true; });
     margin-bottom: 0.125rem;
 }
 
-.recent-link-item__short:hover { text-decoration: underline; }
-:global(.dark) .recent-link-item__short { color: #818cf8; }
+.recent-link-item__short:hover {
+    text-decoration: underline;
+}
+:global(.dark) .recent-link-item__short {
+    color: #818cf8;
+}
 
 .recent-link-item__original {
     display: block;
@@ -666,7 +1326,9 @@ onMounted(() => { mounted.value = true; });
     margin-bottom: 0.375rem;
 }
 
-:global(.dark) .empty-state__text { color: #d1d5db; }
+:global(.dark) .empty-state__text {
+    color: #d1d5db;
+}
 
 .empty-state__sub {
     font-size: 0.875rem;
@@ -693,12 +1355,25 @@ onMounted(() => { mounted.value = true; });
     max-height: 200px;
 }
 
-.result-pop-enter-active { animation: result-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.result-pop-leave-active { transition: all 0.2s ease; }
-.result-pop-leave-to     { opacity: 0; transform: translateY(-8px); }
+.result-pop-enter-active {
+    animation: result-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.result-pop-leave-active {
+    transition: all 0.2s ease;
+}
+.result-pop-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
 
 @keyframes result-pop-in {
-    from { opacity: 0; transform: scale(0.95) translateY(8px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 </style>

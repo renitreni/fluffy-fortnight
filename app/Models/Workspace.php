@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Database\Factories\WorkspaceFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * Workspace is an organizational unit grouping links, domains, and team members.
@@ -22,19 +25,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $slug
  * @property string|null $logo
  * @property int $custom_domain_limit
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
- * @property-read \App\Models\User $owner
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\User> $members
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Link> $links
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\CustomDomain> $customDomains
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ApiKey> $apiKeys
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Webhook> $webhooks
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read User $owner
+ * @property-read Collection<int, User> $members
+ * @property-read Collection<int, Link> $links
+ * @property-read Collection<int, CustomDomain> $customDomains
+ * @property-read Collection<int, ApiKey> $apiKeys
+ * @property-read Collection<int, Webhook> $webhooks
  */
 class Workspace extends Model
 {
-    /** @use HasFactory<\Database\Factories\WorkspaceFactory> */
+    /** @use HasFactory<WorkspaceFactory> */
     use HasFactory, SoftDeletes;
 
     /**
@@ -114,5 +117,13 @@ class Workspace extends Model
     public function webhooks(): HasMany
     {
         return $this->hasMany(Webhook::class);
+    }
+
+    /**
+     * Pending invitations to join this workspace.
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(WorkspaceInvitation::class);
     }
 }

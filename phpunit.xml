@@ -29,5 +29,8 @@
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="GOOGLE_CLIENT_ID" value="test_client_id" force="true"/>
+        <env name="GOOGLE_CLIENT_SECRET" value="test_client_secret" force="true"/>
+        <env name="GOOGLE_REDIRECT_URI" value="http://localhost/auth/google/callback" force="true"/>
     </php>
 </phpunit>

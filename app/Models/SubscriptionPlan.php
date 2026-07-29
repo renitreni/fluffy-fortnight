@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\SubscriptionPlanFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * SubscriptionPlan defines the feature tiers available on the platform.
@@ -25,13 +28,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $max_workspaces
  * @property int $max_custom_domains
  * @property bool $is_active
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\User> $users
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Collection<int, User> $users
  */
 class SubscriptionPlan extends Model
 {
-    /** @use HasFactory<\Database\Factories\SubscriptionPlanFactory> */
+    /** @use HasFactory<SubscriptionPlanFactory> */
     use HasFactory;
 
     /**
@@ -61,11 +64,11 @@ class SubscriptionPlan extends Model
     protected function casts(): array
     {
         return [
-            'features'      => 'array',
+            'features' => 'array',
             'price_monthly' => 'decimal:2',
-            'price_yearly'  => 'decimal:2',
-            'is_active'     => 'boolean',
-            'max_links'     => 'integer',
+            'price_yearly' => 'decimal:2',
+            'is_active' => 'boolean',
+            'max_links' => 'integer',
             'max_workspaces' => 'integer',
             'max_custom_domains' => 'integer',
         ];

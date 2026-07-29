@@ -190,6 +190,27 @@ Docker Compose uses this endpoint to determine Nginx container health.
 
 ---
 
+## 📈 Monitoring & Error Tracking
+
+- **Laravel Pulse**: The application uses Laravel Pulse for server and application health monitoring. Once the application is running, you can access the dashboard at `/pulse` (ensure you are authenticated or have authorized access).
+- **Sentry**: Error tracking is configured via Sentry. Set the `SENTRY_LARAVEL_DSN` in your `.env` file to enable production error logging.
+
+---
+
+## 🚀 Production Deployment
+
+For production deployments, a separate `docker-compose.prod.yml` is provided. This uses a multi-stage, non-root Docker build for the application, and doesn't map local source volumes.
+
+```bash
+# Set production environment variables
+cp .env.example .env
+
+# Build and start the production stack
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+---
+
 ## 📜 Changelog
 
 See [CHANGELOG.md](./CHANGELOG.md).

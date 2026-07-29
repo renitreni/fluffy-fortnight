@@ -30,10 +30,15 @@ use Illuminate\Support\Facades\Cache;
  *
  * ```json
  * {
- *   "original_url":   "https://example.com/some/path",
- *   "redirect_type":  302,
- *   "is_active":      true,
- *   "expires_at":     "2026-12-31T23:59:59Z"   // null if no expiry
+ *   "id":                123,
+ *   "original_url":      "https://example.com/some/path",
+ *   "redirect_type":     302,
+ *   "is_active":         true,
+ *   "expires_at":        "2026-12-31T23:59:59Z",
+ *   "has_password":      false,
+ *   "ios_deep_link":     "twitter://user?id=123",
+ *   "android_deep_link": "twitter://user?id=123",
+ *   "expected_domain":   "link.brand.com"
  * }
  * ```
  */
@@ -63,9 +68,8 @@ class RedirectCacheService
     /**
      * Retrieve cached redirect data for the given short code.
      *
-     * @param  string $shortCode
-     * @return array{original_url: string, redirect_type: int, is_active: bool, expires_at: string|null}|null
-     *         Returns null on a cache miss.
+     * @return array{id: int, original_url: string, redirect_type: int, is_active: bool, expires_at: string|null, has_password: bool, ios_deep_link: string|null, android_deep_link: string|null, expected_domain: string|null}|null
+     *                                                                                                                                                                                        Returns null on a cache miss.
      */
     public function get(string $shortCode): ?array
     {
@@ -77,9 +81,6 @@ class RedirectCacheService
 
     /**
      * Check whether the given short code has a not-found tombstone.
-     *
-     * @param  string $shortCode
-     * @return bool
      */
     public function isMarkedNotFound(string $shortCode): bool
     {
@@ -95,17 +96,19 @@ class RedirectCacheService
      *
      * Only the fields necessary for redirect resolution are persisted.
      * The cache entry expires after {@see LINK_TTL} seconds.
-     *
-     * @param  \App\Models\Link $link
-     * @return void
      */
     public function put(Link $link): void
     {
         $payload = [
-            'original_url'  => $link->original_url,
+            'id' => $link->id,
+            'original_url' => $link->original_url,
             'redirect_type' => 302, // 301 support deferred to future feature flag
-            'is_active'     => (bool) $link->is_active,
-            'expires_at'    => $link->expires_at?->toIso8601String(),
+            'is_active' => (bool) $link->is_active,
+            'expires_at' => $link->expires_at?->toIso8601String(),
+            'has_password' => $link->password !== null,
+            'ios_deep_link' => $link->ios_deep_link,
+            'android_deep_link' => $link->android_deep_link,
+            'expected_domain' => $link->customDomain?->domain,
         ];
 
         Cache::put($this->linkKey($link->short_code), $payload, self::LINK_TTL);
@@ -116,9 +119,6 @@ class RedirectCacheService
      *
      * Prevents repeated DB queries for the same invalid code during the
      * tombstone's TTL window.
-     *
-     * @param  string $shortCode
-     * @return void
      */
     public function markNotFound(string $shortCode): void
     {
@@ -134,9 +134,6 @@ class RedirectCacheService
      *
      * Call this whenever a link is updated or deleted so that the next
      * redirect request performs a fresh DB lookup.
-     *
-     * @param  string $shortCode
-     * @return void
      */
     public function forget(string $shortCode): void
     {
@@ -150,23 +147,17 @@ class RedirectCacheService
 
     /**
      * Build the cache key for link redirect data.
-     *
-     * @param  string $shortCode
-     * @return string
      */
     public function linkKey(string $shortCode): string
     {
-        return self::KEY_PREFIX . $shortCode;
+        return self::KEY_PREFIX.$shortCode;
     }
 
     /**
      * Build the cache key for a not-found tombstone.
-     *
-     * @param  string $shortCode
-     * @return string
      */
     public function notFoundKey(string $shortCode): string
     {
-        return self::KEY_PREFIX . $shortCode . ':notfound';
+        return self::KEY_PREFIX.$shortCode.':notfound';
     }
 }

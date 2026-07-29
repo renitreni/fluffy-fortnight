@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -27,7 +28,7 @@ return new class extends Migration
             $table->enum('reason', ['malicious', 'phishing', 'spam', 'manual'])
                 ->comment('Classification of why this URL is blocked');
             $table->string('source', 50)->nullable()->comment('Detection source, e.g. "google_safe_browsing", "phishtank", "admin"');
-            $table->foreignIdFor(\App\Models\User::class, 'blocked_by')
+            $table->foreignIdFor(User::class, 'blocked_by')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete()

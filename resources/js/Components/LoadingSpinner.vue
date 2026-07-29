@@ -37,13 +37,13 @@ const sizeClasses = {
 const trackClasses = {
     brand: 'text-brand-200 dark:text-brand-900',
     white: 'text-white/30',
-    gray:  'text-gray-200 dark:text-gray-700',
+    gray: 'text-gray-200 dark:text-gray-700',
 };
 
 const spinClasses = {
     brand: 'text-brand-600 dark:text-brand-400',
     white: 'text-white',
-    gray:  'text-gray-500 dark:text-gray-400',
+    gray: 'text-gray-500 dark:text-gray-400',
 };
 </script>
 

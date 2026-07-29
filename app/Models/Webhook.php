@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Database\Factories\WebhookFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Webhook represents a user's event subscription endpoint.
@@ -24,16 +26,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array $events
  * @property string $secret
  * @property bool $is_active
- * @property \Illuminate\Support\Carbon|null $last_triggered_at
+ * @property Carbon|null $last_triggered_at
  * @property int $failure_count
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\User $user
- * @property-read \App\Models\Workspace|null $workspace
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
+ * @property-read Workspace|null $workspace
  */
 class Webhook extends Model
 {
-    /** @use HasFactory<\Database\Factories\WebhookFactory> */
+    /** @use HasFactory<WebhookFactory> */
     use HasFactory;
 
     /**
@@ -69,10 +71,10 @@ class Webhook extends Model
     protected function casts(): array
     {
         return [
-            'events'            => 'array',
-            'is_active'         => 'boolean',
+            'events' => 'array',
+            'is_active' => 'boolean',
             'last_triggered_at' => 'datetime',
-            'failure_count'     => 'integer',
+            'failure_count' => 'integer',
         ];
     }
 

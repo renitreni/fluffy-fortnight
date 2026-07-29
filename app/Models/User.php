@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
+use Laravel\Cashier\Billable;
 
 /**
  * The User model represents an authenticated platform user.
@@ -20,27 +24,27 @@ use Illuminate\Notifications\Notifiable;
  * @property int $id
  * @property string $name
  * @property string $email
- * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $avatar
  * @property string $timezone
  * @property string $locale
  * @property bool $is_active
  * @property int|null $subscription_plan_id
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\SubscriptionPlan|null $subscriptionPlan
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Workspace> $ownedWorkspaces
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Workspace> $workspaces
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Link> $links
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\CustomDomain> $customDomains
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ApiKey> $apiKeys
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Webhook> $webhooks
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read SubscriptionPlan|null $subscriptionPlan
+ * @property-read Collection<int, Workspace> $ownedWorkspaces
+ * @property-read Collection<int, Workspace> $workspaces
+ * @property-read Collection<int, Link> $links
+ * @property-read Collection<int, CustomDomain> $customDomains
+ * @property-read Collection<int, ApiKey> $apiKeys
+ * @property-read Collection<int, Webhook> $webhooks
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable, Billable;
 
     /**
      * The attributes that are mass assignable.
@@ -55,7 +59,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'timezone',
         'locale',
         'is_active',
+        'ip_anonymization',
+        'data_retention_days',
         'subscription_plan_id',
+        'current_workspace_id',
     ];
 
     /**
@@ -77,8 +84,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'is_active'         => 'boolean',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+            'ip_anonymization' => 'boolean',
+            'data_retention_days' => 'integer',
         ];
     }
 
@@ -107,9 +116,17 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function workspaces(): BelongsToMany
     {
-        return $this->belongsToMany(Workspace::class)
+        return $this->belongsToMany(Workspace::class, 'workspace_user')
             ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * The user's link-in-bio pages.
+     */
+    public function bioPages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BioPage::class);
     }
 
     /**
@@ -142,5 +159,35 @@ class User extends Authenticatable implements MustVerifyEmail
     public function webhooks(): HasMany
     {
         return $this->hasMany(Webhook::class);
+    }
+
+    /**
+     * The currently active workspace for this user.
+     */
+    public function currentWorkspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class, 'current_workspace_id');
+    }
+
+    /**
+     * Switch the user's active workspace.
+     */
+    public function switchWorkspace(Workspace $workspace): void
+    {
+        if (! $this->isMemberOf($workspace)) {
+            abort(403, 'You are not a member of this workspace.');
+        }
+
+        $this->current_workspace_id = $workspace->id;
+        $this->save();
+    }
+
+    /**
+     * Check if the user is a member of the given workspace.
+     */
+    public function isMemberOf(Workspace $workspace): bool
+    {
+        return $this->workspaces()->where('workspace_id', $workspace->id)->exists()
+            || $this->ownedWorkspaces()->where('id', $workspace->id)->exists();
     }
 }

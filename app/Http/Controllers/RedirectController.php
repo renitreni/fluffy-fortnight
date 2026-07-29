@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessClickTracking;
 use App\Models\Link;
 use App\Services\RedirectCacheService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
 /**
@@ -36,6 +38,7 @@ use Inertia\Inertia;
  *
  *  - Inactive links (`is_active = false`): 404.
  *  - Expired links (`expires_at` in the past): 410 Gone.
+ *  - Password-protected links: Render `Links/PasswordGate` Inertia page.
  *  - Unknown short codes: 404 (with tombstone written to Redis).
  */
 class RedirectController extends Controller
@@ -47,9 +50,7 @@ class RedirectController extends Controller
     /**
      * Resolve a short code and redirect to the original URL.
      *
-     * @param  \Illuminate\Http\Request $request
-     * @param  string                   $shortCode  The Base62 short code from the URL path.
-     * @return \Illuminate\Http\RedirectResponse|\Inertia\Response|\Illuminate\Http\Response
+     * @param  string  $shortCode  The Base62 short code from the URL path.
      */
     public function __invoke(Request $request, string $shortCode): RedirectResponse|Response|\Inertia\Response
     {
@@ -62,17 +63,25 @@ class RedirectController extends Controller
         $cached = $this->cache->get($shortCode);
 
         if ($cached !== null) {
-            return $this->resolveFromPayload($cached);
+            if (!$this->isHostValid($request, $cached['expected_domain'] ?? null)) {
+                return $this->notFoundResponse();
+            }
+            return $this->resolveFromPayload($request, $cached, $shortCode);
         }
 
         // ── 3. Cache miss → DB lookup ─────────────────────────────────────────
-        /** @var \App\Models\Link|null $link */
-        $link = Link::where('short_code', $shortCode)->first();
+        /** @var Link|null $link */
+        $link = Link::with('customDomain')->where('short_code', $shortCode)->first();
 
         // Not found or soft-deleted
         if ($link === null) {
             $this->cache->markNotFound($shortCode);
 
+            return $this->notFoundResponse();
+        }
+
+        // Domain validation
+        if (!$this->isHostValid($request, $link->customDomain?->domain)) {
             return $this->notFoundResponse();
         }
 
@@ -86,10 +95,29 @@ class RedirectController extends Controller
             return response(null, 410);
         }
 
+        // Password-protected link — show the gate page
+        if ($link->password !== null) {
+            // Warm the cache (including has_password=true) before rendering
+            $this->cache->put($link);
+
+            return $this->passwordGateResponse($shortCode);
+        }
+
         // Warm the cache for subsequent requests
         $this->cache->put($link);
 
-        return redirect()->away($link->original_url, 302);
+        $userAgent = $request->userAgent() ?? '';
+        $targetUrl = $link->original_url;
+
+        if (! empty($link->ios_deep_link) && preg_match('/iPhone|iPad|iPod/i', $userAgent)) {
+            $targetUrl = $link->ios_deep_link;
+        } elseif (! empty($link->android_deep_link) && preg_match('/Android/i', $userAgent)) {
+            $targetUrl = $link->android_deep_link;
+        }
+
+        $this->dispatchTrackingJob($link->id, $request);
+
+        return redirect()->away($targetUrl, 302);
     }
 
     // -------------------------------------------------------------------------
@@ -103,25 +131,49 @@ class RedirectController extends Controller
      * that a cache entry written just before a link was deactivated/expired
      * does not serve stale redirects past the cache TTL.
      *
-     * @param  array{original_url: string, redirect_type: int, is_active: bool, expires_at: string|null} $payload
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\Response
+     * @param  array{original_url: string, redirect_type: int, is_active: bool, expires_at: string|null, has_password: bool, ios_deep_link: string|null, android_deep_link: string|null}  $payload
      */
-    private function resolveFromPayload(array $payload): RedirectResponse|Response
+    private function resolveFromPayload(Request $request, array $payload, string $shortCode): RedirectResponse|Response|\Inertia\Response
     {
         if (! $payload['is_active']) {
             return $this->notFoundResponse();
         }
 
         if ($payload['expires_at'] !== null) {
-            $expiresAt = \Illuminate\Support\Carbon::parse($payload['expires_at']);
+            $expiresAt = Carbon::parse($payload['expires_at']);
             if ($expiresAt->isPast()) {
                 return response(null, 410);
             }
         }
 
-        $statusCode = $payload['redirect_type'] ?? 302;
+        // Password-protected — show the gate page (no password exposed to client)
+        if (! empty($payload['has_password'])) {
+            return $this->passwordGateResponse($shortCode);
+        }
 
-        return redirect()->away($payload['original_url'], $statusCode);
+        $statusCode = $payload['redirect_type'] ?? 302;
+        $userAgent = $request->userAgent() ?? '';
+        $targetUrl = $payload['original_url'];
+
+        if (! empty($payload['ios_deep_link']) && preg_match('/iPhone|iPad|iPod/i', $userAgent)) {
+            $targetUrl = $payload['ios_deep_link'];
+        } elseif (! empty($payload['android_deep_link']) && preg_match('/Android/i', $userAgent)) {
+            $targetUrl = $payload['android_deep_link'];
+        }
+
+        $this->dispatchTrackingJob($payload['id'], $request);
+
+        return redirect()->away($targetUrl, $statusCode);
+    }
+
+    /**
+     * Render the Inertia password gate page for a password-protected short link.
+     */
+    private function passwordGateResponse(string $shortCode): \Inertia\Response
+    {
+        return Inertia::render('Links/PasswordGate', [
+            'shortCode' => $shortCode,
+        ]);
     }
 
     /**
@@ -129,11 +181,38 @@ class RedirectController extends Controller
      *
      * Returns a plain HTTP 404 response for consistency across all
      * not-found scenarios in the redirect engine.
-     *
-     * @return \Illuminate\Http\Response
      */
     private function notFoundResponse(): Response
     {
         return response(null, 404);
+    }
+
+    /**
+     * Dispatch the async click tracking job.
+     */
+    private function dispatchTrackingJob(int $linkId, Request $request): void
+    {
+        ProcessClickTracking::dispatch(
+            $linkId,
+            $request->ip() ?? '0.0.0.0',
+            $request->userAgent(),
+            $request->header('referer'),
+            now()->toIso8601String()
+        );
+    }
+
+    /**
+     * Validate that the incoming request host matches the expected domain.
+     */
+    private function isHostValid(Request $request, ?string $expectedDomain): bool
+    {
+        $host = $request->getHost();
+
+        if ($expectedDomain !== null) {
+            return $host === $expectedDomain;
+        }
+
+        $appHost = parse_url(config('app.url'), PHP_URL_HOST) ?? config('app.url');
+        return $host === $appHost;
     }
 }

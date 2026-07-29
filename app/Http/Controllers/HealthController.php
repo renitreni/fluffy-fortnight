@@ -28,7 +28,7 @@ class HealthController extends Controller
      *  - database : Executes `SELECT 1` via the default DB connection.
      *  - redis    : Writes and reads a test key via the cache store.
      *
-     * @return JsonResponse  200 when all checks pass, 503 on any failure.
+     * @return JsonResponse 200 when all checks pass, 503 on any failure.
      */
     public function __invoke(): JsonResponse
     {
@@ -70,10 +70,10 @@ class HealthController extends Controller
         $httpStatus = $allHealthy ? 200 : 503;
 
         $payload = [
-            'status'    => $status,
+            'status' => $status,
             'timestamp' => now()->toIso8601String(),
-            'version'   => config('app.version', '0.5.0'),
-            'checks'    => $checks,
+            'version' => config('app.version', '0.5.0'),
+            'checks' => $checks,
         ];
 
         // Emit a single structured log line for observability pipelines.

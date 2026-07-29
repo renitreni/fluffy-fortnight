@@ -44,19 +44,28 @@ FROM base AS app
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy application files
+# Copy composer files first for caching
+COPY composer.json composer.lock ./
+
+# Install dependencies (ignoring scripts for now)
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+# Copy the rest of the application
 COPY . .
 
-# Install PHP dependencies (no dev in production; dev only in local)
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# Run composer scripts
+RUN composer run-script post-autoload-dump || true
 
-# Fix permissions for Laravel storage and cache
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+# Fix permissions for Laravel
+RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Copy and enable entrypoint
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Switch to non-root user
+USER www-data
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]

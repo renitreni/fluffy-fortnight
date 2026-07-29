@@ -51,9 +51,10 @@ const iconSizeClasses = {
 };
 
 const variantClasses = {
-    ghost:   'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
-    solid:   'bg-brand-600 text-white shadow hover:bg-brand-500 focus:ring-brand-500',
-    outline: 'border border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200',
+    ghost: 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
+    solid: 'bg-brand-600 text-white shadow hover:bg-brand-500 focus:ring-brand-500',
+    outline:
+        'border border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200',
 };
 </script>
 

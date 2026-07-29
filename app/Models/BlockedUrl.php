@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Database\Factories\BlockedUrlFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * BlockedUrl represents a URL that is banned from being shortened.
@@ -17,16 +19,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property string $url_hash
  * @property string $url
- * @property string $reason  One of: malicious, phishing, spam, manual
+ * @property string $reason One of: malicious, phishing, spam, manual
  * @property string|null $source
  * @property int|null $blocked_by
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\User|null $blocker
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User|null $blocker
  */
 class BlockedUrl extends Model
 {
-    /** @use HasFactory<\Database\Factories\BlockedUrlFactory> */
+    /** @use HasFactory<BlockedUrlFactory> */
     use HasFactory;
 
     /**

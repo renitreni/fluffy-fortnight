@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Database\Factories\ClickFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Click records a single redirect event for a short link.
@@ -31,12 +33,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $referer
  * @property string|null $referer_domain
  * @property string|null $user_agent
- * @property \Illuminate\Support\Carbon $clicked_at
- * @property-read \App\Models\Link $link
+ * @property Carbon $clicked_at
+ * @property-read Link $link
  */
 class Click extends Model
 {
-    /** @use HasFactory<\Database\Factories\ClickFactory> */
+    /** @use HasFactory<ClickFactory> */
     use HasFactory;
 
     /**
@@ -85,8 +87,8 @@ class Click extends Model
     {
         return [
             'clicked_at' => 'datetime',
-            'latitude'   => 'decimal:7',
-            'longitude'  => 'decimal:7',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
 
