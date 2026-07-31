@@ -33,6 +33,13 @@ export default {
             animation: {
                 'blob': 'blob 7s infinite',
                 'fade-in': 'fadeIn 0.5s ease-out',
+                'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+                'slide-in-right': 'slideInRight 0.6s ease-out forwards',
+                'scale-in': 'scaleIn 0.4s ease-out forwards',
+                'float': 'float 6s ease-in-out infinite',
+                'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'gradient-x': 'gradientX 15s ease infinite',
+                'count-up': 'countUp 2s ease-out forwards',
             },
             keyframes: {
                 blob: {
@@ -43,6 +50,30 @@ export default {
                 },
                 fadeIn: {
                     '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
+                },
+                fadeInUp: {
+                    '0%': { opacity: '0', transform: 'translateY(30px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
+                },
+                slideInRight: {
+                    '0%': { opacity: '0', transform: 'translateX(30px)' },
+                    '100%': { opacity: '1', transform: 'translateX(0)' },
+                },
+                scaleIn: {
+                    '0%': { opacity: '0', transform: 'scale(0.9)' },
+                    '100%': { opacity: '1', transform: 'scale(1)' },
+                },
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-20px)' },
+                },
+                gradientX: {
+                    '0%, 100%': { 'background-position': '0% 50%' },
+                    '50%': { 'background-position': '100% 50%' },
+                },
+                countUp: {
+                    '0%': { opacity: '0', transform: 'translateY(10px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
                 }
             }
