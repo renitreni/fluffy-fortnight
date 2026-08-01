@@ -6,14 +6,12 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import ToastNotification from '@/Components/ToastNotification.vue';
-import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
 
 const switchWorkspace = (workspaceId) => {
-    useForm({ workspace_id: workspaceId }).put(route('workspaces.switch'), {
-        preserveState: false,
-    });
+    router.post(route('workspaces.switch'), { workspace_id: workspaceId }, { preserveState: false });
 };
 </script>
 
@@ -41,9 +39,7 @@ const switchWorkspace = (workspaceId) => {
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
                                 <Link :href="route('dashboard')">
-                                    <ApplicationLogo
-                                        class="block h-9 w-auto fill-brand-600 text-brand-600 dark:text-brand-400"
-                                    />
+                                    <ApplicationLogo variant="mark-with-text" class="block h-8 w-auto sm:h-9" />
                                 </Link>
                             </div>
 
@@ -110,7 +106,18 @@ const switchWorkspace = (workspaceId) => {
                                             class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800 transition duration-150 ease-in-out"
                                         >
                                             <div class="flex items-center">
-                                                <svg v-if="!$page.props.auth.currentWorkspace" class="mr-2 h-5 w-5 text-green-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                <svg
+                                                    v-if="!$page.props.auth.currentWorkspace"
+                                                    class="mr-2 h-5 w-5 text-green-400"
+                                                    fill="none"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
                                                 Personal
                                             </div>
                                         </button>
@@ -121,8 +128,23 @@ const switchWorkspace = (workspaceId) => {
                                             class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800 transition duration-150 ease-in-out"
                                         >
                                             <div class="flex items-center">
-                                                <svg v-if="$page.props.auth.currentWorkspace?.id === workspace.id" class="mr-2 h-5 w-5 text-green-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                <svg v-else class="mr-2 h-5 w-5 text-transparent" fill="none" viewBox="0 0 24 24"></svg>
+                                                <svg
+                                                    v-if="$page.props.auth.currentWorkspace?.id === workspace.id"
+                                                    class="mr-2 h-5 w-5 text-green-400"
+                                                    fill="none"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <svg
+                                                    class="mr-2 h-5 w-5 text-transparent"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                ></svg>
                                                 {{ workspace.name }}
                                             </div>
                                         </button>
@@ -175,7 +197,12 @@ const switchWorkspace = (workspaceId) => {
                                 @click="showingNavigationDropdown = !showingNavigationDropdown"
                                 class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:hover:bg-gray-800 dark:focus:bg-gray-800"
                             >
-                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <svg
+                                    class="h-6 w-6"
+                                    stroke="currentColor"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
                                     <path
                                         :class="{
                                             hidden: showingNavigationDropdown,

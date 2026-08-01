@@ -88,7 +88,7 @@ const themeClasses = computed(() => {
             <div class="pt-12 text-center">
                 <a href="/" target="_blank" class="inline-block hover:opacity-80 transition-opacity">
                     <span :class="['text-xs font-semibold uppercase tracking-wider', themeClasses.subText]">
-                        Powered by URL Shortener
+                        Powered by Elido
                     </span>
                 </a>
             </div>

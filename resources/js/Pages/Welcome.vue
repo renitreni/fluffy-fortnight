@@ -147,7 +147,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head title="URL Shortener — Shorten Links, Track Clicks, Grow Faster" />
+    <Head title="Elido — Shorten Links, Track Clicks, Grow Faster" />
 
     <div class="relative min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 overflow-x-hidden">
         <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -166,16 +166,9 @@ onUnmounted(() => {
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <!-- Logo -->
-                    <div class="flex items-center gap-3">
-                        <Link href="/" class="flex items-center gap-2.5">
-                            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 shadow-lg shadow-brand-500/20">
-                                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
-                            </div>
-                            <span class="text-lg font-bold bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">
-                                URL Shortener
-                            </span>
+                    <div class="flex items-center">
+                        <Link href="/" class="flex items-center gap-3">
+                            <ApplicationLogo variant="mark-with-text" class="h-9 w-auto" />
                         </Link>
                     </div>
 
@@ -759,14 +752,7 @@ onUnmounted(() => {
                     <!-- Brand -->
                     <div class="md:col-span-2">
                         <div class="flex items-center gap-2.5 mb-4">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-purple-600">
-                                <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
-                            </div>
-                            <span class="text-lg font-bold bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">
-                                URL Shortener
-                            </span>
+                            <ApplicationLogo variant="wordmark" class="h-8 w-auto" />
                         </div>
                         <p class="text-sm text-gray-600 dark:text-gray-400 max-w-sm leading-relaxed">
                             The modern link management platform for individuals and teams. 
@@ -809,7 +795,7 @@ onUnmounted(() => {
 
                 <div class="border-t border-gray-200/50 dark:border-gray-800/50 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p class="text-sm text-gray-500 dark:text-gray-500">
-                        &copy; {{ new Date().getFullYear() }} URL Shortener. All rights reserved.
+                        &copy; {{ new Date().getFullYear() }} Elido. All rights reserved.
                     </p>
                     <div class="flex items-center gap-4">
                         <span class="text-xs text-gray-400 dark:text-gray-600">Built with Laravel & Vue.js</span>

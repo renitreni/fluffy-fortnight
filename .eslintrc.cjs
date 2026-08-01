@@ -6,6 +6,10 @@ module.exports = {
         es2022: true,
         node: true,
     },
+    globals: {
+        route: 'readonly',
+        Ziggy: 'readonly',
+    },
     extends: [
         'eslint:recommended',
         'plugin:vue/vue3-recommended',
@@ -22,7 +26,7 @@ module.exports = {
         'vue/component-name-in-template-casing': ['error', 'PascalCase'],
         'vue/html-indent': ['error', 4],
         'vue/max-attributes-per-line': ['error', {
-            singleline: { max: 3 },
+            singleline: { max: 5 },
             multiline: { max: 1 },
         }],
 
