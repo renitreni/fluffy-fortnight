@@ -3,9 +3,10 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ref, onMounted, onUnmounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
-defineProps({
+const props = defineProps({
     canLogin: { type: Boolean },
     canRegister: { type: Boolean },
+    plans: { type: Array, default: () => [] },
 });
 
 // ── Scroll Animation Observer ───────────────────────────────────────────────
@@ -117,6 +118,47 @@ const copyDemoUrl = async () => {
 // ── Mobile Menu ─────────────────────────────────────────────────────────────
 
 const mobileMenuOpen = ref(false);
+
+// ── Pricing ─────────────────────────────────────────────────────────────────
+
+const billingInterval = ref('monthly');
+
+const toggleBilling = () => {
+    billingInterval.value = billingInterval.value === 'monthly' ? 'yearly' : 'monthly';
+};
+
+const formatPrice = (price) => {
+    if (price === null || price === undefined) return '0';
+    return parseFloat(price).toFixed(2);
+};
+
+const getFeatureLabel = (key) => {
+    const labels = {
+        analytics: 'Analytics Dashboard',
+        custom_domains: 'Custom Domains',
+        api_access: 'API Access',
+        bulk_shortening: 'Bulk Shortening',
+        password_links: 'Password Protection',
+        link_expiry: 'Link Expiration',
+        qr_codes: 'QR Code Generation',
+        utm_builder: 'UTM Builder',
+        sso: 'Single Sign-On (SSO)',
+        audit_logs: 'Audit Logs',
+        rbac: 'Role-Based Access',
+        webhooks: 'Webhooks',
+        link_in_bio: 'Link-in-Bio Pages',
+    };
+    return labels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+const getPlanDescription = (plan) => {
+    const descriptions = {
+        free: 'Perfect for trying out the platform.',
+        pro: 'Best for individuals and small teams.',
+        enterprise: 'For power users and organizations.',
+    };
+    return descriptions[plan.name] || '';
+};
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -677,66 +719,234 @@ onUnmounted(() => {
         </section>
 
         <!-- ═══════════════════════════════════════════════════════════════ -->
-        <!-- PRICING CTA                                                     -->
+        <!-- PRICING SECTION                                                 -->
         <!-- ═══════════════════════════════════════════════════════════════ -->
         <section id="pricing" class="py-24 lg:py-32 bg-gray-50/50 dark:bg-gray-900/30">
-            <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-                <div class="animate-on-scroll opacity-0 translate-y-8 transition-all duration-700">
-                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-6">
-                        Ready to start shortening?
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <!-- Section Header -->
+                <div class="text-center max-w-3xl mx-auto mb-12 animate-on-scroll opacity-0 translate-y-8 transition-all duration-700">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-brand-50 dark:bg-brand-900/20 px-4 py-1.5 text-sm font-medium text-brand-700 dark:text-brand-300 mb-4 border border-brand-200 dark:border-brand-800">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        Simple Pricing
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
+                        Choose your plan
                     </h2>
-                    <p class="text-lg text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                        Join thousands of marketers, developers, and teams who trust our platform 
-                        to manage their links. Start free and scale as you grow.
+                    <p class="text-lg text-gray-600 dark:text-gray-400">
+                        Start free and upgrade when you need more power. No hidden fees, cancel anytime.
                     </p>
 
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link
-                            v-if="canRegister && !$page.props.auth?.user"
-                            :href="route('register')"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-brand-500/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-500/30 hover:from-brand-500 hover:to-purple-500"
+                    <!-- Billing Toggle -->
+                    <div class="mt-8 inline-flex items-center gap-3 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                        <button
+                            @click="billingInterval = 'monthly'"
+                            :class="billingInterval === 'monthly' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'"
+                            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
                         >
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Get Started Free
-                        </Link>
-                        <Link
-                            v-else-if="$page.props.auth?.user"
-                            :href="route('links.index')"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-brand-500/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-500/30 hover:from-brand-500 hover:to-purple-500"
+                            Monthly
+                        </button>
+                        <button
+                            @click="billingInterval = 'yearly'"
+                            :class="billingInterval === 'yearly' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'"
+                            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
                         >
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Go to Dashboard
-                        </Link>
-                        <a
-                            href="#features"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 px-8 py-4 text-base font-semibold text-gray-700 dark:text-gray-300 transition-all duration-300 hover:border-brand-300 hover:text-brand-600 dark:hover:border-brand-700 dark:hover:text-brand-400"
-                        >
-                            Explore Features
-                        </a>
+                            Yearly
+                            <span class="ml-1 text-xs font-semibold text-green-500">Save</span>
+                        </button>
                     </div>
+                </div>
 
-                    <div class="mt-8 flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-500">
-                        <div class="flex items-center gap-2">
-                            <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                <!-- Pricing Cards -->
+                <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
+                    <div
+                        v-for="(plan, index) in props.plans"
+                        :key="plan.id"
+                        class="relative rounded-2xl bg-white dark:bg-gray-900 p-6 lg:p-8 shadow-sm ring-1 ring-gray-200/60 dark:ring-gray-700/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col animate-on-scroll opacity-0 translate-y-8 transition-all duration-700"
+                        :class="[
+                            plan.name === 'enterprise' ? 'ring-2 ring-brand-500 dark:ring-brand-400 shadow-lg shadow-brand-500/10' : '',
+                        ]"
+                        :style="`transition-delay: ${index * 100}ms`"
+                    >
+                        <!-- Popular Badge -->
+                        <div
+                            v-if="plan.name === 'enterprise'"
+                            class="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand-600 to-purple-600 px-3 py-1 text-xs font-bold text-white shadow-md"
+                        >
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                                />
                             </svg>
-                            Free forever plan
+                            Best Value
                         </div>
-                        <div class="flex items-center gap-2">
-                            <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            No credit card required
+
+                        <!-- Plan Header -->
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ plan.display_name }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ getPlanDescription(plan) }}</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Cancel anytime
+
+                        <!-- Price -->
+                        <div class="mb-6">
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-4xl font-extrabold text-gray-900 dark:text-white">
+                                    ${{ plan.price_monthly !== null ? formatPrice(billingInterval === 'monthly' ? plan.price_monthly : plan.price_yearly) : '0' }}
+                                </span>
+                                <span class="text-gray-500 dark:text-gray-400">/{{ billingInterval === 'monthly' ? 'mo' : 'yr' }}</span>
+                            </div>
+                            <p v-if="plan.price_monthly && billingInterval === 'yearly'" class="mt-1 text-xs text-green-600 dark:text-green-400 font-medium">
+                                Save ${{ formatPrice((plan.price_monthly * 12) - plan.price_yearly) }} per year
+                            </p>
+                        </div>
+
+                        <!-- CTA -->
+                        <div class="mb-6">
+                            <Link
+                                v-if="plan.price_monthly === null"
+                                :href="route('register')"
+                                class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 transition-all duration-300 hover:border-brand-300 hover:text-brand-600 dark:hover:border-brand-700 dark:hover:text-brand-400"
+                            >
+                                Get Started Free
+                            </Link>
+                            <Link
+                                v-else-if="!$page.props.auth?.user"
+                                :href="route('register')"
+                                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand-500/20 transition-all duration-300 hover:from-brand-500 hover:to-purple-500 hover:shadow-xl hover:shadow-brand-500/30"
+                                :class="plan.name === 'enterprise' ? 'from-brand-500 to-purple-500 shadow-brand-500/30' : ''"
+                            >
+                                <svg v-if="plan.name === 'enterprise'" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                                    />
+                                </svg>
+                                Start {{ plan.display_name }} Plan
+                            </Link>
+                            <Link
+                                v-else
+                                :href="route('billing.index')"
+                                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand-500/20 transition-all duration-300 hover:from-brand-500 hover:to-purple-500 hover:shadow-xl hover:shadow-brand-500/30"
+                                :class="plan.name === 'enterprise' ? 'from-brand-500 to-purple-500 shadow-brand-500/30' : ''"
+                            >
+                                Upgrade Now
+                            </Link>
+                        </div>
+
+                        <!-- Features -->
+                        <div class="flex-1">
+                            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Features</p>
+                            <ul class="space-y-2.5">
+                                <li v-if="plan.max_links === 0" class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <svg class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                    Unlimited links
+                                </li>
+                                <li v-else class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <svg class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                    {{ plan.max_links }} links
+                                </li>
+                                <li v-if="plan.max_workspaces === 0" class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <svg class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                    Unlimited workspaces
+                                </li>
+                                <li v-else class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <svg class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                    {{ plan.max_workspaces }} workspace{{ plan.max_workspaces > 1 ? 's' : '' }}
+                                </li>
+                                <li v-if="plan.max_custom_domains === 0 && plan.price_monthly !== null" class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <svg class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                    Unlimited custom domains
+                                </li>
+                                <li v-else-if="plan.max_custom_domains > 0" class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <svg class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                    {{ plan.max_custom_domains }} custom domain{{ plan.max_custom_domains > 1 ? 's' : '' }}
+                                </li>
+                                <template v-if="plan.features">
+                                    <li
+                                        v-for="(enabled, feature) in plan.features"
+                                        :key="feature"
+                                        class="flex items-start gap-2 text-sm"
+                                        :class="enabled ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-600'"
+                                    >
+                                        <svg
+                                            class="h-4 w-4 mt-0.5 flex-shrink-0"
+                                            :class="enabled ? 'text-green-500' : 'text-gray-300 dark:text-gray-600'"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                v-if="enabled"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M5 13l4 4L19 7"
+                                            />
+                                            <path
+                                                v-else
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12"
+                                            />
+                                        </svg>
+                                        {{ getFeatureLabel(feature) }}
+                                    </li>
+                                </template>
+                            </ul>
                         </div>
                     </div>
                 </div>

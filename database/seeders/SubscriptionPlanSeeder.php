@@ -51,8 +51,8 @@ class SubscriptionPlanSeeder extends Seeder
                     'qr_codes' => true,
                     'utm_builder' => true,
                 ],
-                'price_monthly' => 12.00,
-                'price_yearly' => 120.00,
+                'price_monthly' => 2.99,
+                'price_yearly' => 24.99,
                 'max_links' => 0, // unlimited
                 'max_workspaces' => 3,
                 'max_custom_domains' => 3,
@@ -76,8 +76,8 @@ class SubscriptionPlanSeeder extends Seeder
                     'webhooks' => true,
                     'link_in_bio' => true,
                 ],
-                'price_monthly' => 49.00,
-                'price_yearly' => 490.00,
+                'price_monthly' => 6.99,
+                'price_yearly' => 59.99,
                 'max_links' => 0, // unlimited
                 'max_workspaces' => 0, // unlimited
                 'max_custom_domains' => 0, // unlimited
