@@ -47,11 +47,46 @@ const form = useForm({
     ios_deep_link: '',
     android_deep_link: '',
     custom_domain_id: '',
+    og_image: null,
 });
 
 const showAdvanced = ref(false);
 const showUtmBuilder = ref(false);
 const showPassword = ref(false);
+
+// ── OG Image Upload ─────────────────────────────────────────────────────────
+
+const ogImagePreview = ref(null);
+const ogImageInputRef = ref(null);
+
+function handleOgImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size client-side for better UX
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+        toast.error('Only JPG and PNG images are allowed.');
+        event.target.value = '';
+        return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image must be smaller than 2MB.');
+        event.target.value = '';
+        return;
+    }
+
+    form.og_image = file;
+    ogImagePreview.value = URL.createObjectURL(file);
+}
+
+function removeOgImage() {
+    form.og_image = null;
+    ogImagePreview.value = null;
+    if (ogImageInputRef.value) {
+        ogImageInputRef.value.value = '';
+    }
+}
 
 const utmParams = ref({
     utm_source: '',
@@ -561,6 +596,90 @@ onMounted(() => {
                                         Visitors must enter this password to access the link.
                                     </p>
                                     <InputError :message="form.errors.password" />
+                                </div>
+
+                                <!-- OG Image Upload -->
+                                <div class="space-y-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                    <label
+                                        for="og_image"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Social Preview Image
+                                        <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+
+                                    <!-- Image Preview -->
+                                    <div v-if="ogImagePreview" class="og-image-preview-wrapper">
+                                        <img
+                                            :src="ogImagePreview"
+                                            alt="OG Image Preview"
+                                            class="og-image-preview"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="og-image-remove-btn"
+                                            title="Remove image"
+                                            @click="removeOgImage"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-4 w-4"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- File Input -->
+                                    <div
+                                        v-else
+                                        class="og-image-dropzone"
+                                        :class="{ 'og-image-dropzone--error': form.errors.og_image }"
+                                    >
+                                        <input
+                                            id="og_image"
+                                            ref="ogImageInputRef"
+                                            type="file"
+                                            name="og_image"
+                                            accept=".jpg,.jpeg,.png"
+                                            class="og-image-input"
+                                            :disabled="form.processing"
+                                            @change="handleOgImageChange"
+                                        />
+                                        <div class="og-image-dropzone-content">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-8 w-8 text-gray-400 mb-2"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                                <polyline points="21 15 16 10 5 21" />
+                                            </svg>
+                                            <p class="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                                                Click to upload or drag and drop
+                                            </p>
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                JPG or PNG, max 2MB
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <InputError :message="form.errors.og_image" />
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        This image will appear when the link is shared on Facebook, Twitter, LinkedIn, etc.
+                                    </p>
                                 </div>
 
                                 <!-- Mobile Deep Links -->
@@ -1333,6 +1452,91 @@ onMounted(() => {
 .empty-state__sub {
     font-size: 0.875rem;
     color: #9ca3af;
+}
+
+/* ── OG Image Upload ────────────────────────────────────────────────────── */
+.og-image-preview-wrapper {
+    position: relative;
+    display: inline-block;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1.5px solid #e5e7eb;
+}
+
+:global(.dark) .og-image-preview-wrapper {
+    border-color: #374151;
+}
+
+.og-image-preview {
+    display: block;
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+}
+
+.og-image-remove-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.og-image-remove-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.og-image-dropzone {
+    position: relative;
+    border: 2px dashed #d1d5db;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+}
+
+:global(.dark) .og-image-dropzone {
+    border-color: #4b5563;
+}
+
+.og-image-dropzone:hover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.04);
+}
+
+:global(.dark) .og-image-dropzone:hover {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.og-image-dropzone--error {
+    border-color: #f87171;
+    background: rgba(248, 113, 113, 0.04);
+}
+
+.og-image-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.og-image-dropzone-content {
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* ── Transitions ─────────────────────────────────────────────────────────── */

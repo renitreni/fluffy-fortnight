@@ -11,6 +11,7 @@ use App\Services\UrlNormalizerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -134,6 +135,15 @@ class LinkController extends Controller
                 $this->generator->generateForLink($newLink);
             }
 
+            // Handle OG image upload after link creation so we can use the link ID in the path
+            if ($request->hasFile('og_image')) {
+                $path = Storage::disk('public')->putFile(
+                    'og_images',
+                    $request->file('og_image')
+                );
+                $newLink->update(['og_image_path' => $path]);
+            }
+
             return $newLink;
         });
 
@@ -167,7 +177,29 @@ class LinkController extends Controller
         $validated = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
+            'og_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'remove_og_image' => ['nullable', 'boolean'],
         ]);
+
+        // Handle OG image removal
+        if (! empty($validated['remove_og_image']) && $link->og_image_path) {
+            Storage::disk('public')->delete($link->og_image_path);
+            $validated['og_image_path'] = null;
+        }
+
+        // Handle OG image upload
+        if ($request->hasFile('og_image')) {
+            // Delete old image if exists
+            if ($link->og_image_path) {
+                Storage::disk('public')->delete($link->og_image_path);
+            }
+            $validated['og_image_path'] = Storage::disk('public')->putFile(
+                'og_images',
+                $request->file('og_image')
+            );
+        }
+
+        unset($validated['og_image'], $validated['remove_og_image']);
 
         $link->update($validated);
 
@@ -197,6 +229,11 @@ class LinkController extends Controller
         // Evict from cache before soft-deleting so concurrent requests
         // cannot sneak a redirect through after deletion.
         $this->redirectCache->forget($link->short_code);
+
+        // Clean up uploaded OG image if present
+        if ($link->og_image_path) {
+            Storage::disk('public')->delete($link->og_image_path);
+        }
 
         $link->delete();
 

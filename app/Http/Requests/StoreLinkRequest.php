@@ -64,6 +64,7 @@ class StoreLinkRequest extends FormRequest
                     return $query->where('user_id', $this->user()->id)->where('is_verified', true);
                 }),
             ],
+            'og_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ];
     }
 

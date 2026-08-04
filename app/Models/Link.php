@@ -83,6 +83,7 @@ class Link extends Model
         'click_count',
         'is_active',
         'tags',
+        'og_image_path',
     ];
 
     /**

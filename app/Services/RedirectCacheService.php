@@ -109,6 +109,9 @@ class RedirectCacheService
             'ios_deep_link' => $link->ios_deep_link,
             'android_deep_link' => $link->android_deep_link,
             'expected_domain' => $link->customDomain?->domain,
+            'title' => $link->title,
+            'description' => $link->description,
+            'og_image_path' => $link->og_image_path,
         ];
 
         Cache::put($this->linkKey($link->short_code), $payload, self::LINK_TTL);

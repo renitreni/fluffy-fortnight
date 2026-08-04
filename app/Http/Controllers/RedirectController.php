@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 /**
@@ -106,6 +107,11 @@ class RedirectController extends Controller
         // Warm the cache for subsequent requests
         $this->cache->put($link);
 
+        // Social media crawlers get an OG preview page instead of a redirect
+        if ($this->isSocialCrawler($request)) {
+            return $this->ogPreviewResponse($link);
+        }
+
         $userAgent = $request->userAgent() ?? '';
         $targetUrl = $link->original_url;
 
@@ -149,6 +155,11 @@ class RedirectController extends Controller
         // Password-protected — show the gate page (no password exposed to client)
         if (! empty($payload['has_password'])) {
             return $this->passwordGateResponse($shortCode);
+        }
+
+        // Social media crawlers get an OG preview page instead of a redirect
+        if ($this->isSocialCrawler($request)) {
+            return $this->ogPreviewResponseFromPayload($payload, $shortCode);
         }
 
         $statusCode = $payload['redirect_type'] ?? 302;
@@ -214,5 +225,104 @@ class RedirectController extends Controller
 
         $appHost = parse_url(config('app.url'), PHP_URL_HOST) ?? config('app.url');
         return $host === $appHost;
+    }
+
+    /**
+     * Detect whether the request is from a social media crawler/bot.
+     *
+     * Matches user agents from Facebook, Twitter/X, LinkedIn, WhatsApp,
+     * Telegram, Discord, Slack, and other platforms that scrape OG meta tags.
+     */
+    private function isSocialCrawler(Request $request): bool
+    {
+        $userAgent = strtolower($request->userAgent() ?? '');
+
+        $crawlers = [
+            'facebookexternalhit',
+            'facebot',
+            'twitterbot',
+            'linkedinbot',
+            'whatsapp',
+            'telegrambot',
+            'discordbot',
+            'slackbot',
+            'googlebot',
+            'bingbot',
+            'applebot',
+            'yandexbot',
+            'duckduckbot',
+            'baiduspider',
+            'embedly',
+            'quora link preview',
+            'showyoubot',
+            'outbrain',
+            'pinterest',
+            'vkshare',
+            'w3c_validator',
+            'redditbot',
+            'flipboard',
+            'tumblr',
+            'skypeuripreview',
+            'nuzzel',
+            'qwantify',
+        ];
+
+        foreach ($crawlers as $crawler) {
+            if (str_contains($userAgent, $crawler)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Render an OG preview page for social media crawlers.
+     *
+     * Returns a Blade view with OpenGraph meta tags so that platforms
+     * like Facebook, Twitter, LinkedIn display a rich preview card.
+     * Regular users are auto-redirected via JavaScript.
+     */
+    private function ogPreviewResponse(Link $link): Response
+    {
+        $shortUrl = $link->customDomain
+            ? 'https://' . $link->customDomain->domain . '/' . $link->short_code
+            : rtrim(config('app.url'), '/') . '/' . $link->short_code;
+
+        $ogImageUrl = null;
+        if ($link->og_image_path) {
+            $ogImageUrl = asset('storage/' . $link->og_image_path);
+        }
+
+        return response()->view('links.preview', [
+            'title' => $link->title ?? $link->original_url,
+            'description' => $link->description ?? 'Click to visit this link.',
+            'ogImageUrl' => $ogImageUrl,
+            'shortUrl' => $shortUrl,
+            'targetUrl' => $link->original_url,
+        ]);
+    }
+
+    /**
+     * Render an OG preview page from cached payload (cache-hit path).
+     *
+     * Avoids a DB round-trip by using the cached data directly.
+     */
+    private function ogPreviewResponseFromPayload(array $payload, string $shortCode): Response
+    {
+        $shortUrl = rtrim(config('app.url'), '/') . '/' . $shortCode;
+
+        $ogImageUrl = null;
+        if (! empty($payload['og_image_path'])) {
+            $ogImageUrl = asset('storage/' . $payload['og_image_path']);
+        }
+
+        return response()->view('links.preview', [
+            'title' => $payload['title'] ?? $payload['original_url'],
+            'description' => $payload['description'] ?? 'Click to visit this link.',
+            'ogImageUrl' => $ogImageUrl,
+            'shortUrl' => $shortUrl,
+            'targetUrl' => $payload['original_url'],
+        ]);
     }
 }
