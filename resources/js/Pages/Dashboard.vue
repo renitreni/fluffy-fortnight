@@ -141,7 +141,7 @@ const copyToClipboard = async (url) => {
             <div
                 v-for="stat in stats"
                 :key="stat.label"
-                class="glass rounded-2xl border border-gray-200/50 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-gray-700/50"
+                class="glass rounded-2xl border border-gray-200/50 p-6 transition-all duration-300 hover:-translate-y-1 hover:glass-shadow dark:border-gray-700/50"
             >
                 <div class="flex items-center justify-between">
                     <div>

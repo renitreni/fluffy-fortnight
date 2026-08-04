@@ -204,7 +204,7 @@ onUnmounted(() => {
         <!-- ═══════════════════════════════════════════════════════════════ -->
         <!-- NAVIGATION                                                      -->
         <!-- ═══════════════════════════════════════════════════════════════ -->
-        <nav class="sticky top-0 z-50 glass border-b border-gray-200/50 dark:border-gray-800/50">
+        <nav class="sticky top-0 z-50 glass glass-shadow border-b border-gray-200/50 dark:border-gray-800/50">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <!-- Logo -->

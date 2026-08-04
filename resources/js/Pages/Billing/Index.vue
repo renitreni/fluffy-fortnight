@@ -35,7 +35,7 @@ const startCheckout = (planId) => {
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 <!-- Current Subscription Status -->
-                <div class="p-4 sm:p-8 glass shadow sm:rounded-lg">
+                <div class="p-4 sm:p-8 glass glass-shadow sm:rounded-lg">
                     <section>
                         <header class="flex justify-between items-center mb-6">
                             <div>
@@ -72,10 +72,12 @@ const startCheckout = (planId) => {
                                 <span class="text-gray-500 dark:text-gray-400 ml-1">/mo</span>
                             </div>
                             <ul class="space-y-3 mb-6">
-                                <li v-if="plan.features" v-for="(enabled, feature) in plan.features" :key="feature" class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                    <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                    {{ feature }}
-                                </li>
+                                <template v-for="(enabled, feature) in plan.features" :key="feature">
+                                    <li v-if="plan.features" class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        {{ feature }}
+                                    </li>
+                                </template>
                                 <li class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                     <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                     Max Links: {{ plan.max_links }}

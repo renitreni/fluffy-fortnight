@@ -31,7 +31,7 @@ const switchWorkspace = (workspaceId) => {
                 ></div>
             </div>
 
-            <nav class="sticky top-0 z-40 glass border-b border-gray-200/50 dark:border-gray-700/50">
+            <nav class="sticky top-0 z-40 glass glass-shadow border-b border-gray-200/50 dark:border-gray-700/50">
                 <!-- Primary Navigation Menu -->
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div class="flex h-16 justify-between">
@@ -276,7 +276,7 @@ const switchWorkspace = (workspaceId) => {
             </nav>
 
             <!-- Page Heading -->
-            <header class="glass border-b border-gray-200/30 dark:border-gray-700/30" v-if="$slots.header">
+            <header class="glass glass-shadow border-b border-gray-200/30 dark:border-gray-700/30" v-if="$slots.header">
                 <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                     <slot name="header" />
                 </div>

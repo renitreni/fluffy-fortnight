@@ -12,6 +12,14 @@
 
 @layer utilities {
     .glass {
-        @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl dark:bg-gray-900/70 dark:border-gray-700/50;
+        @apply bg-white/70 backdrop-blur-lg border border-white/20 dark:bg-gray-900/70 dark:border-gray-700/50;
+    }
+    
+    .glass-shadow {
+        @apply shadow-xl;
+    }
+    
+    .hover\:glass-shadow:hover {
+        @apply shadow-xl;
     }
 }
