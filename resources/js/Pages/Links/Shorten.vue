@@ -6,6 +6,9 @@ import InputError from '@/Components/InputError.vue';
 import CopyButton from '@/Components/CopyButton.vue';
 import LoadingSpinner from '@/Components/LoadingSpinner.vue';
 import { useToastStore } from '@/Stores/useToastStore';
+import Modal from '@/Components/Modal.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 
 /**
  * Shorten.vue — The primary URL shortening interface.
@@ -234,6 +237,34 @@ function truncate(str, max = 50) {
     if (!str) return '';
     return str.length > max ? str.slice(0, max) + '…' : str;
 }
+
+// ── Delete Link ──────────────────────────────────────────────────────────────
+
+const showDeleteModal = ref(false);
+const deletingLink = ref(null);
+const deleteForm = useForm({});
+
+const openDeleteModal = (link) => {
+    deletingLink.value = link;
+    showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+    showDeleteModal.value = false;
+    setTimeout(() => {
+        deletingLink.value = null;
+    }, 200);
+};
+
+const submitDelete = () => {
+    deleteForm.delete(route('links.destroy', deletingLink.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeDeleteModal();
+            toast.success('Link deleted successfully.');
+        },
+    });
+};
 
 // ── Submission ───────────────────────────────────────────────────────────────
 
@@ -993,6 +1024,26 @@ onMounted(() => {
                                 :id="`copy-recent-${link.short_code}`"
                                 @copied="toast.success('Copied!')"
                             />
+                            <button
+                                type="button"
+                                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1 rounded"
+                                title="Delete link"
+                                @click="openDeleteModal(link)"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1019,6 +1070,42 @@ onMounted(() => {
                 <p class="empty-state__sub">Paste any long URL above and hit Shorten URL</p>
             </div>
         </div>
+        <!-- Delete Link Modal -->
+        <Modal :show="showDeleteModal" @close="closeDeleteModal">
+            <div class="p-6">
+                <div class="flex items-start gap-4">
+                    <div
+                        class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30"
+                    >
+                        <svg
+                            class="h-6 w-6 text-red-600 dark:text-red-500"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Delete Link</h3>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            Are you sure you want to delete this link? It will no longer redirect users, and this action
+                            cannot be undone.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <SecondaryButton @click="closeDeleteModal">Cancel</SecondaryButton>
+                    <DangerButton @click="submitDelete" :disabled="deleteForm.processing"> Delete Link </DangerButton>
+                </div>
+            </div>
+        </Modal>
     </AppLayout>
 </template>
 
