@@ -44,6 +44,7 @@ const page = usePage();
 const form = useForm({
     original_url: '',
     title: '',
+    description: '',
     custom_alias: '',
     expires_at: '',
     password: '',
@@ -483,6 +484,27 @@ onMounted(() => {
                                         :disabled="form.processing"
                                     />
                                     <InputError :message="form.errors.title" />
+                                </div>
+
+                                <!-- Description -->
+                                <div class="space-y-2">
+                                    <label
+                                        for="link_description"
+                                        class="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                                    >
+                                        Description <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                                    </label>
+                                    <textarea
+                                        id="link_description"
+                                        v-model="form.description"
+                                        name="description"
+                                        placeholder="e.g. Check out our new product launch with exclusive early-bird pricing."
+                                        maxlength="500"
+                                        rows="3"
+                                        class="title-input resize-none"
+                                        :disabled="form.processing"
+                                    ></textarea>
+                                    <InputError :message="form.errors.description" />
                                 </div>
 
                                 <!-- Custom Domain -->

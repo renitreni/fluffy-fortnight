@@ -122,6 +122,7 @@ class LinkController extends Controller
                 'workspace_id' => $user->current_workspace_id,
                 'original_url' => $normalizedUrl,
                 'title' => $request->validated('title'),
+                'description' => $request->validated('description'),
                 'is_active' => true,
                 'click_count' => 0,
                 'short_code' => $customAlias ?? 'tmp_'.substr(Str::uuid()->toString(), 0, 15),

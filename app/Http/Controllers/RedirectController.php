@@ -292,7 +292,7 @@ class RedirectController extends Controller
         $ogImageUrl = null;
         $ogImageType = null;
         if ($link->og_image_path) {
-            $ogImageUrl = asset('storage/' . $link->og_image_path);
+            $ogImageUrl = url('storage/' . $link->og_image_path);
             $extension = pathinfo($link->og_image_path, PATHINFO_EXTENSION);
             $ogImageType = match (strtolower($extension)) {
                 'jpg', 'jpeg' => 'image/jpeg',
@@ -323,7 +323,7 @@ class RedirectController extends Controller
         $ogImageUrl = null;
         $ogImageType = null;
         if (! empty($payload['og_image_path'])) {
-            $ogImageUrl = asset('storage/' . $payload['og_image_path']);
+            $ogImageUrl = url('storage/' . $payload['og_image_path']);
             $extension = pathinfo($payload['og_image_path'], PATHINFO_EXTENSION);
             $ogImageType = match (strtolower($extension)) {
                 'jpg', 'jpeg' => 'image/jpeg',

@@ -44,6 +44,7 @@ class StoreLinkRequest extends FormRequest
         return [
             'original_url' => ['required', 'string', 'max:2048', $this->urlValidationRule(), new NotMaliciousUrl],
             'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
             'custom_alias' => [
                 'nullable',
                 'string',
