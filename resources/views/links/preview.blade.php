@@ -31,12 +31,6 @@
     <meta name="twitter:image" content="{{ $ogImageUrl }}">
     @endif
 
-    <!-- Auto-redirect for regular users -->
-    <meta http-equiv="refresh" content="0;url={{ $targetUrl }}">
-    <script>
-        window.location.href = '{{ $targetUrl }}';
-    </script>
-
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -52,18 +46,6 @@
             text-align: center;
             padding: 2rem;
         }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #6366f1;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
         a {
             color: #6366f1;
             text-decoration: none;
@@ -75,8 +57,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="spinner"></div>
-        <p>Redirecting you to <a href="{{ $targetUrl }}">{{ $targetUrl }}</a>...</p>
+        <p><a href="{{ $targetUrl }}">Click here to visit the link</a></p>
     </div>
 </body>
 </html>
