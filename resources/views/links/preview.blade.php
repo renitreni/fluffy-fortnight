@@ -14,6 +14,13 @@
     <meta property="og:image" content="{{ $ogImageUrl }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    @if (!empty($ogImageType))
+    <meta property="og:image:type" content="{{ $ogImageType }}">
+    @endif
+    @if (str_starts_with($ogImageUrl, 'https://'))
+    <meta property="og:image:secure_url" content="{{ $ogImageUrl }}">
+    @endif
+    <meta property="og:image:alt" content="{{ $title }}">
     @endif
 
     <!-- Twitter Card Meta Tags -->

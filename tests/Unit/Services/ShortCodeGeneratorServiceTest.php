@@ -28,28 +28,25 @@ class ShortCodeGeneratorServiceTest extends TestCase
     // ── Encoding ──────────────────────────────────────────────────────────
 
     /**
-     * encode(1) should return a single character from the Base62 alphabet.
+     * encode(1) with the ID offset should return a 5-character mixed alphanumeric code.
      */
-    public function test_encode_id_1_returns_single_char(): void
+    public function test_encode_id_1_returns_mixed_alphanumeric_code(): void
     {
         $code = $this->service->encode(1);
-        $this->assertSame('1', $code);
+        $this->assertSame('6laZF', $code);
+        // Verify it contains a mix of upper, lower, and digit characters
+        $this->assertMatchesRegularExpression('/[A-Z]/', $code, 'Code should contain uppercase letters');
+        $this->assertMatchesRegularExpression('/[a-z]/', $code, 'Code should contain lowercase letters');
+        $this->assertMatchesRegularExpression('/[0-9]/', $code, 'Code should contain digits');
     }
 
     /**
-     * encode(62) should return '10' because the alphabet is:
-     * 0-9 (indices 0-9), A-Z (indices 10-35), a-z (indices 36-61).
-     * 62 = 1*62 + 0, so it encodes as '10'.
+     * encode(2) should return the next consecutive code after encode(1).
      */
-    public function test_encode_id_62_returns_correct_base62(): void
+    public function test_encode_id_2_returns_correct_code(): void
     {
-        $code = $this->service->encode(62);
-        $this->assertSame('10', $code);
-
-        // Also verify the encoding of 10 (which should give 'A', index 10 in the alphabet)
-        $this->assertSame('A', $this->service->encode(10));
-        // And 36 → 'a' (first lowercase letter, index 36)
-        $this->assertSame('a', $this->service->encode(36));
+        $code = $this->service->encode(2);
+        $this->assertSame('6laZG', $code);
     }
 
     /**
@@ -104,17 +101,17 @@ class ShortCodeGeneratorServiceTest extends TestCase
     // ── Code Lengths ──────────────────────────────────────────────────────
 
     /**
-     * For IDs 1–1,000,000 the encoded code should be no longer than 4 characters
-     * (62^4 = 14,776,336 > 1,000,000).
+     * For IDs 1–1,000,000 the encoded code should be no longer than 6 characters
+     * (with the 100M offset, 62^5 = 916,132,832 > 100M + 1M).
      */
-    public function test_ids_up_to_one_million_produce_codes_of_4_chars_or_fewer(): void
+    public function test_ids_up_to_one_million_produce_reasonable_code_lengths(): void
     {
         foreach ([1, 100, 10000, 100000, 1000000] as $id) {
             $code = $this->service->encode($id);
             $this->assertLessThanOrEqual(
-                4,
+                6,
                 strlen($code),
-                "Code for id={$id} has length ".strlen($code)." (expected ≤4): {$code}"
+                "Code for id={$id} has length ".strlen($code)." (expected ≤6): {$code}"
             );
         }
     }

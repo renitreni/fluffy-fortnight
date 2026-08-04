@@ -290,14 +290,22 @@ class RedirectController extends Controller
             : rtrim(config('app.url'), '/') . '/' . $link->short_code;
 
         $ogImageUrl = null;
+        $ogImageType = null;
         if ($link->og_image_path) {
             $ogImageUrl = asset('storage/' . $link->og_image_path);
+            $extension = pathinfo($link->og_image_path, PATHINFO_EXTENSION);
+            $ogImageType = match (strtolower($extension)) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                default => 'image/jpeg',
+            };
         }
 
         return response()->view('links.preview', [
             'title' => $link->title ?? $link->original_url,
             'description' => $link->description ?? 'Click to visit this link.',
             'ogImageUrl' => $ogImageUrl,
+            'ogImageType' => $ogImageType,
             'shortUrl' => $shortUrl,
             'targetUrl' => $link->original_url,
         ]);
@@ -313,14 +321,22 @@ class RedirectController extends Controller
         $shortUrl = rtrim(config('app.url'), '/') . '/' . $shortCode;
 
         $ogImageUrl = null;
+        $ogImageType = null;
         if (! empty($payload['og_image_path'])) {
             $ogImageUrl = asset('storage/' . $payload['og_image_path']);
+            $extension = pathinfo($payload['og_image_path'], PATHINFO_EXTENSION);
+            $ogImageType = match (strtolower($extension)) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                default => 'image/jpeg',
+            };
         }
 
         return response()->view('links.preview', [
             'title' => $payload['title'] ?? $payload['original_url'],
             'description' => $payload['description'] ?? 'Click to visit this link.',
             'ogImageUrl' => $ogImageUrl,
+            'ogImageType' => $ogImageType,
             'shortUrl' => $shortUrl,
             'targetUrl' => $payload['original_url'],
         ]);

@@ -42,6 +42,17 @@ class ShortCodeGeneratorService
     private const BASE = 62;
 
     /**
+     * Offset added to the link ID before encoding to guarantee short codes
+     * contain mixed case alphanumeric characters (not just digits).
+     *
+     * Without an offset, early IDs (1…61) encode to a single Base62 character
+     * which may be only a digit (1–9) or a single letter.  Adding the offset
+     * forces a multi-character output that naturally includes a mix of upper,
+     * lower, and digit characters.
+     */
+    private const ID_OFFSET = 100_000_000;
+
+    /**
      * Encode a positive integer into a Base62 string.
      *
      * @param  int  $id  The integer to encode. Must be ≥ 1.
@@ -56,7 +67,7 @@ class ShortCodeGeneratorService
         }
 
         $result = '';
-        $n = $id;
+        $n = $id + self::ID_OFFSET;
 
         while ($n > 0) {
             $result = self::ALPHABET[$n % self::BASE].$result;
@@ -88,7 +99,7 @@ class ShortCodeGeneratorService
             $result = $result * self::BASE + $charIndex;
         }
 
-        return $result;
+        return max(1, $result - self::ID_OFFSET);
     }
 
     /**
