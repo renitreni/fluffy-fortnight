@@ -498,6 +498,7 @@ onMounted(() => {
                                             name="custom_alias"
                                             placeholder="my-custom-url"
                                             maxlength="255"
+                                            autocomplete="off"
                                             class="alias-input"
                                             :disabled="form.processing"
                                             @keydown.enter.prevent="submit"
@@ -546,6 +547,7 @@ onMounted(() => {
                                             name="password"
                                             placeholder="Min. 4 characters"
                                             maxlength="72"
+                                            autocomplete="new-password"
                                             class="title-input pr-12"
                                             :disabled="form.processing"
                                         />
