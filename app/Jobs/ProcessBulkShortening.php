@@ -134,7 +134,7 @@ class ProcessBulkShortening implements ShouldQueue
                                 'title' => $title,
                                 'is_active' => true,
                                 'click_count' => 0,
-                                'short_code' => $customAlias ?? 'tmp_'.Str::uuid(),
+                                'short_code' => $customAlias ?? 'tmp_'.substr(Str::uuid()->toString(), 0, 15),
                                 'is_custom_alias' => $customAlias !== null,
                             ]);
 

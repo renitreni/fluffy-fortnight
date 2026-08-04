@@ -84,7 +84,7 @@ class LinkController extends Controller
                 'custom_domain_id' => $validated['custom_domain_id'] ?? null,
                 'original_url' => $normalizedUrl,
                 'title' => $validated['title'] ?? null,
-                'short_code' => $validated['custom_alias'] ?? Str::uuid()->toString(), // Temporary placeholder
+                'short_code' => $validated['custom_alias'] ?? 'tmp_'.substr(Str::uuid()->toString(), 0, 15), // Temporary placeholder
             ]);
 
             if (empty($validated['custom_alias'])) {
