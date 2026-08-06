@@ -32,33 +32,106 @@
     @endif
 
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            margin: 0;
-            background: #f9fafb;
+            background: #f3f4f6;
             color: #374151;
         }
-        .container {
-            text-align: center;
-            padding: 2rem;
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            max-width: 520px;
+            width: 90%;
         }
-        a {
-            color: #6366f1;
+        .card-image {
+            width: 100%;
+            aspect-ratio: 1200 / 630;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .card-image-placeholder {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        .card-footer {
+            padding: 8px 12px;
+            border-top: 1px solid #f3f4f6;
+        }
+        .card-footer-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #111827;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-footer-url {
+            font-size: 11px;
+            color: #6b7280;
+            line-height: 1.3;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-footer-url a {
+            color: #6b7280;
             text-decoration: none;
-            font-size: 1px;
         }
-        a:hover {
+        .card-footer-url a:hover {
             text-decoration: underline;
+        }
+        .click-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+        .card-wrapper {
+            position: relative;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <p><a href="{{ $targetUrl }}">Click here to visit the link</a></p>
+    <div class="card-wrapper">
+        <a href="{{ $targetUrl }}" class="click-overlay" aria-label="Visit link"></a>
+        <div class="card">
+            @if ($ogImageUrl)
+            <div class="card-image">
+                <img src="{{ $ogImageUrl }}" alt="{{ $title }}">
+            </div>
+            @else
+            <div class="card-image">
+                <span class="card-image-placeholder">No preview image</span>
+            </div>
+            @endif
+            <div class="card-footer">
+                @if ($title)
+                <div class="card-footer-title">{{ $title }}</div>
+                @endif
+                <div class="card-footer-url">{{ parse_url($shortUrl, PHP_URL_HOST) }}</div>
+            </div>
+        </div>
     </div>
 </body>
 </html>
