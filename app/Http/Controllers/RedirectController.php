@@ -307,6 +307,7 @@ class RedirectController extends Controller
             'ogImageUrl' => $ogImageUrl,
             'ogImageType' => $ogImageType,
             'shortUrl' => $shortUrl,
+            'hiddenShortUrl' => $this->maskUrlForPreview($shortUrl),
             'targetUrl' => $link->original_url,
         ]);
     }
@@ -338,7 +339,31 @@ class RedirectController extends Controller
             'ogImageUrl' => $ogImageUrl,
             'ogImageType' => $ogImageType,
             'shortUrl' => $shortUrl,
+            'hiddenShortUrl' => $this->maskUrlForPreview($shortUrl),
             'targetUrl' => $payload['original_url'],
         ]);
+    }
+
+    private function maskUrlForPreview(string $url): string
+    {
+        $parsed = parse_url($url);
+        if (! isset($parsed['host'])) {
+            return $url;
+        }
+
+        $host = $parsed['host'];
+        $maskedHost = implode("\u{200B}", str_split($host));
+
+        $maskedUrl = ($parsed['scheme'] ?? 'https') . '://' . $maskedHost;
+
+        if (isset($parsed['path'])) {
+            $maskedUrl .= $parsed['path'];
+        }
+
+        if (isset($parsed['query'])) {
+            $maskedUrl .= '?' . $parsed['query'];
+        }
+
+        return $maskedUrl;
     }
 }

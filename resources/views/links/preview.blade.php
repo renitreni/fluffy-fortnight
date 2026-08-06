@@ -8,7 +8,8 @@
     <!-- OpenGraph Meta Tags -->
     <meta property="og:title" content="{{ $title }}">
     <meta property="og:description" content="{{ $description }}">
-    <meta property="og:url" content="{{ $shortUrl }}">
+    @php($escapedShortUrl = $hiddenShortUrl ?? $shortUrl)
+    <meta property="og:url" content="{{ $escapedShortUrl }}">
     <meta property="og:type" content="website">
     @if ($ogImageUrl)
     <meta property="og:image" content="{{ $ogImageUrl }}">
