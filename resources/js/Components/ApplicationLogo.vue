@@ -40,7 +40,7 @@ const attrs = useAttrs();
             :alt="alt"
             class="block select-none object-contain h-full w-auto"
             draggable="false"
-        />
+        >
         <span class="font-bold text-xl tracking-tight bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent">
             Elido
         </span>
@@ -52,5 +52,5 @@ const attrs = useAttrs();
         class="block select-none object-contain"
         draggable="false"
         v-bind="attrs"
-    />
+    >
 </template>

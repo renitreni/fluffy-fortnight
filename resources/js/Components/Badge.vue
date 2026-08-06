@@ -61,15 +61,17 @@ const sizeClasses = {
             sizeClasses[size],
         ]"
     >
-        <!-- Pulsing dot indicator -->
-        <span v-if="dot" class="relative flex h-2 w-2 flex-shrink-0">
+        <span
+            v-if="dot"
+            class="relative flex h-2 w-2 flex-shrink-0"
+        >
             <span
                 :class="[
                     'absolute inline-flex h-full w-full animate-ping rounded-full opacity-75',
                     dotClasses[variant],
                 ]"
-            ></span>
-            <span :class="['relative inline-flex h-2 w-2 rounded-full', dotClasses[variant]]"></span>
+            />
+            <span :class="['relative inline-flex h-2 w-2 rounded-full', dotClasses[variant]]" />
         </span>
 
         <slot />

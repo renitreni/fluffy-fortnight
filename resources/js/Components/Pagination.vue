@@ -7,6 +7,24 @@ defineProps({
         required: true,
     },
 });
+
+let decoder;
+const decodeHtml = (label) => {
+    if (!label) {
+        return '';
+    }
+
+    if (typeof window === 'undefined') {
+        return label;
+    }
+
+    if (!decoder) {
+        decoder = document.createElement('textarea');
+    }
+
+    decoder.innerHTML = label;
+    return decoder.value;
+};
 </script>
 
 <template>
@@ -16,7 +34,7 @@ defineProps({
                 <div
                     v-if="link.url === null"
                     class="mr-1 mb-1 px-4 py-3 text-sm leading-4 text-gray-400 border rounded"
-                    v-html="link.label"
+                    v-text="decodeHtml(link.label)"
                 />
                 <Link
                     v-else
@@ -28,8 +46,9 @@ defineProps({
                         },
                     ]"
                     :href="link.url"
-                    v-html="link.label"
-                />
+                >
+                    {{ decodeHtml(link.label) }}
+                </Link>
             </template>
         </div>
     </div>
