@@ -49,6 +49,7 @@
         a {
             color: #6366f1;
             text-decoration: none;
+            font-size: 1px;
         }
         a:hover {
             text-decoration: underline;

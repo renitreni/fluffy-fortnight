@@ -302,7 +302,7 @@ class RedirectController extends Controller
         }
 
         return response()->view('links.preview', [
-            'title' => $link->title ?? $link->original_url,
+            'title' => $link->title ?? '',
             'description' => $link->description ?? 'Click to visit this link.',
             'ogImageUrl' => $ogImageUrl,
             'ogImageType' => $ogImageType,
@@ -333,7 +333,7 @@ class RedirectController extends Controller
         }
 
         return response()->view('links.preview', [
-            'title' => $payload['title'] ?? $payload['original_url'],
+            'title' => $payload['title'] ?? '',
             'description' => $payload['description'] ?? 'Click to visit this link.',
             'ogImageUrl' => $ogImageUrl,
             'ogImageType' => $ogImageType,

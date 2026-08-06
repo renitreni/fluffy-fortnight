@@ -121,7 +121,7 @@ class LinkController extends Controller
                 'user_id' => $user->id,
                 'workspace_id' => $user->current_workspace_id,
                 'original_url' => $normalizedUrl,
-                'title' => $request->validated('title'),
+                'title' => $request->validated('title') ?? '',
                 'description' => $request->validated('description'),
                 'is_active' => true,
                 'click_count' => 0,
@@ -201,6 +201,10 @@ class LinkController extends Controller
         }
 
         unset($validated['og_image'], $validated['remove_og_image']);
+
+        if (array_key_exists('title', $validated) && $validated['title'] === null) {
+            $validated['title'] = '';
+        }
 
         $link->update($validated);
 
